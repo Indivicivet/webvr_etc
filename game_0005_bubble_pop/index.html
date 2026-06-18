@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Zen Bubble Popper - VR Garden</title>
+    <meta name="description" content="A relaxing, satisfying gaze-driven WebVR game. Pop bubbles in a peaceful low-poly garden. Hostable on GitHub Pages.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN (Version 1.6.0 is stable and works with standard WebXR) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D HTML Dashboard / Screen UI Overlay -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Game Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">Zen VR Garden</div>
+            <h1>Zen Bubble Popper</h1>
+            <p class="subtitle">Relax and focus. Pop streams of translucent bubbles rising from the pond in front of you. 100% Gaze-driven: simply look at a bubble to pop it instantly.</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-blue"></div>
+                    <div class="guide-item-text">
+                        <h3>Standard Bubble (Blue)</h3>
+                        <p>Pop for +1 Point. Spawns continuously.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-gold"></div>
+                    <div class="guide-item-text">
+                        <h3>Golden Bubble (Gold)</h3>
+                        <p>Activates a 2x Score Multiplier for 10 seconds!</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-purple"></div>
+                    <div class="guide-item-text">
+                        <h3>Star Bubble (Purple)</h3>
+                        <p>Triggers a chain reaction, popping all active bubbles!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-teal">Enter Garden</button>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--zen-rose), var(--zen-gold)); box-shadow: 0 4px 15px var(--zen-rose-glow);">Time's Up</div>
+            <h1>Peace Restored</h1>
+            <p class="subtitle">The bubble stream has ceased. Take a deep breath.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Personal Best:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🎉 NEW PERSONAL BEST! 🎉</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-teal">Play Again</button>
+        </div>
+    </div>
+
+    <!-- HUD Overlay for Screen Players -->
+    <div id="hud" class="hud-container hidden">
+        <div id="hud-score" class="hud-panel">
+            <span class="hud-label">Score</span>
+            <span id="hud-score-val" class="hud-value">000</span>
+        </div>
+        <div id="hud-multiplier" class="hud-panel hidden">
+            <span class="hud-label" style="color: var(--zen-gold);">Multiplier</span>
+            <span id="hud-multiplier-val" class="hud-value" style="color: var(--zen-gold);">2x</span>
+        </div>
+        <div id="hud-timer" class="hud-panel">
+            <span class="hud-label">Time</span>
+            <span id="hud-timer-val" class="hud-value">60</span>
+        </div>
+        <div id="hud-highscore" class="hud-panel">
+            <span class="hud-label">Best</span>
+            <span id="hud-highscore-val" class="hud-value">000</span>
+        </div>
+    </div>
+
+    <!-- Multiplier Banner -->
+    <div id="multiplier-banner" class="multiplier-banner hidden">
+        ✨ GOLDEN MULTIPLIER ACTIVE (2x) ✨
+    </div>
+
+    <!-- 3D VR Scene -->
+    <div id="scene-container">
+        <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+            
+            <!-- Asset Preloading -->
+            <a-assets>
+                <!-- Preloaded sounds and mixins can go here if needed -->
+            </a-assets>
+
+            <!-- Lighting Configuration -->
+            <!-- Warm ambient light for cozy garden feel -->
+            <a-entity light="type: ambient; color: #eef3f9; intensity: 0.9"></a-entity>
+            <!-- Gentle morning sunlight casting soft shadows -->
+            <a-entity light="type: directional; color: #ffeaa7; intensity: 0.8; castShadow: true" position="5 10 3"></a-entity>
+            <!-- Soft ground bounce light -->
+            <a-entity light="type: hemisphere; color: #dff9fb; groundColor: #badc58; intensity: 0.4"></a-entity>
+
+            <!-- Sky & Atmosphere -->
+            <a-sky color="#b5e2fa"></a-sky>
+            
+            <!-- Peach-yellow horizon gradient (using a giant cylinder in distance) -->
+            <a-cylinder radius="60" height="40" open-ended="true" position="0 0 0" material="shader: flat; color: #ffeaa7; side: double; opacity: 0.35" rotation="0 0 0"></a-cylinder>
+
+            <!-- Grassy Ground Circular Meadow -->
+            <a-circle position="0 0 0" radius="40" color="#a2e89d" roughness="0.9" metalness="0.1" rotation="-90 0 0"></a-circle>
+            
+            <!-- Bubbling Pond (Origin of bubbles) -->
+            <a-entity id="pond-container" position="0 0 -4">
+                <!-- Cobblestone border -->
+                <a-torus color="#95a5a6" radius="0.65" radius-tubular="0.06" rotation="90 0 0" position="0 0.02 0" material="roughness: 0.8; metalness: 0.1"></a-torus>
+                <!-- Pond water surface -->
+                <a-circle color="#81ecec" radius="0.62" rotation="-90 0 0" position="0 0.03 0" material="roughness: 0.05; metalness: 0.95; opacity: 0.75; transparent: true"></a-circle>
+                <!-- Underwater light glow source -->
+                <a-entity light="type: point; color: #81ecec; intensity: 0.6; distance: 3" position="0 0.2 0"></a-entity>
+            </a-entity>
+
+            <!-- Low-Poly Scenery (Cherry Blossom Trees & Mountains) -->
+            
+            <!-- Far-off pastel mountains -->
+            <a-cone position="-18 3 -25" radius-bottom="12" height="18" color="#d1d8e0" material="roughness: 0.9; flatShading: true" segments-radial="4" rotation="0 45 0"></a-cone>
+            <a-cone position="18 4 -28" radius-bottom="14" height="22" color="#c8d6e5" material="roughness: 0.9; flatShading: true" segments-radial="5" rotation="0 15 0"></a-cone>
+            <a-cone position="0 2 -32" radius-bottom="15" height="15" color="#b2bec3" material="roughness: 0.9; flatShading: true" segments-radial="4" rotation="0 30 0"></a-cone>
+
+            <!-- Cherry Blossom Trees (Pastel Pink canopies) -->
+            <!-- Tree 1 (Left front) -->
+            <a-entity position="-3.5 0 -4.5">
+                <a-cylinder radius="0.12" height="1.8" color="#7d5c3d" material="roughness: 0.9" position="0 0.9 0"></a-cylinder>
+                <a-sphere radius="0.8" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="0 2 0"></a-sphere>
+                <a-sphere radius="0.6" color="#ffc6ff" material="roughness: 0.8; flatShading: true" position="0.4 2.3 -0.2"></a-sphere>
+                <a-sphere radius="0.5" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="-0.4 2.1 0.3"></a-sphere>
+            </a-entity>
+
+            <!-- Tree 2 (Right front) -->
+            <a-entity position="3.5 0 -4.5">
+                <a-cylinder radius="0.12" height="1.8" color="#7d5c3d" material="roughness: 0.9" position="0 0.9 0"></a-cylinder>
+                <a-sphere radius="0.8" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="0 2 0"></a-sphere>
+                <a-sphere radius="0.6" color="#ffc6ff" material="roughness: 0.8; flatShading: true" position="-0.4 2.3 -0.2"></a-sphere>
+                <a-sphere radius="0.5" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="0.4 2.1 0.3"></a-sphere>
+            </a-entity>
+
+            <!-- Tree 3 (Left back) -->
+            <a-entity position="-5.5 0 -7.5">
+                <a-cylinder radius="0.16" height="2.2" color="#7d5c3d" material="roughness: 0.9" position="0 1.1 0"></a-cylinder>
+                <a-sphere radius="1" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="0 2.5 0"></a-sphere>
+                <a-sphere radius="0.8" color="#ffc6ff" material="roughness: 0.8; flatShading: true" position="0.5 2.8 -0.3"></a-sphere>
+                <a-sphere radius="0.7" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="-0.5 2.5 0.4"></a-sphere>
+            </a-entity>
+
+            <!-- Tree 4 (Right back) -->
+            <a-entity position="5.5 0 -7.5">
+                <a-cylinder radius="0.16" height="2.2" color="#7d5c3d" material="roughness: 0.9" position="0 1.1 0"></a-cylinder>
+                <a-sphere radius="1" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="0 2.5 0"></a-sphere>
+                <a-sphere radius="0.8" color="#ffc6ff" material="roughness: 0.8; flatShading: true" position="-0.5 2.8 -0.3"></a-sphere>
+                <a-sphere radius="0.7" color="#ffb7b2" material="roughness: 0.8; flatShading: true" position="0.5 2.5 0.4"></a-sphere>
+            </a-entity>
+
+            <!-- Floating Clouds -->
+            <a-entity id="cloud-1" position="-6 6 -12" animation="property: position; to: 8 6 -12; dur: 80000; easing: linear; loop: true">
+                <a-sphere radius="1.2" color="#ffffff" material="opacity: 0.95; roughness: 0.9" position="0 0 0"></a-sphere>
+                <a-sphere radius="0.8" color="#ffffff" material="opacity: 0.95; roughness: 0.9" position="-0.9 -0.2 0.3"></a-sphere>
+                <a-sphere radius="0.8" color="#ffffff" material="opacity: 0.95; roughness: 0.9" position="0.9 -0.1 -0.2"></a-sphere>
+            </a-entity>
+
+            <a-entity id="cloud-2" position="6 7.5 -16" animation="property: position; to: -8 7.5 -16; dur: 95000; easing: linear; loop: true">
+                <a-sphere radius="1.4" color="#ffffff" material="opacity: 0.95; roughness: 0.9" position="0 0 0"></a-sphere>
+                <a-sphere radius="0.9" color="#ffffff" material="opacity: 0.95; roughness: 0.9" position="-1.1 -0.2 0.4"></a-sphere>
+                <a-sphere radius="0.9" color="#ffffff" material="opacity: 0.95; roughness: 0.9" position="1.1 -0.1 -0.4"></a-sphere>
+            </a-entity>
+
+            <!-- Dynamic Gameplay Containers -->
+            <a-entity id="bubble-container"></a-entity>
+            <a-entity id="particle-container"></a-entity>
+
+            <!-- 3D VR UI elements (Interactive buttons & dashboards in-world) -->
+            <a-entity id="vr-ui-container">
+                <!-- 3D Start Bubble (Poppable giant bubble) -->
+                <a-sphere id="vr-btn-start" class="vr-btn" position="0 1.5 -2.2"
+                          radius="0.45" color="#81ecec" material="shader: standard; opacity: 0.55; roughness: 0.05; metalness: 0.95; transparent: true; side: double"
+                          animation__bob="property: position; from: 0 1.45 -2.2; to: 0 1.55 -2.2; dur: 2000; dir: alternate; easing: easeInOutSine; loop: true">
+                    <!-- Inner glow -->
+                    <a-sphere radius="0.4" color="#0fbcf9" material="shader: flat; opacity: 0.15; transparent: true" scale="0.98 0.98 0.98"></a-sphere>
+                    <!-- Floating text inside -->
+                    <a-text value="POPMETOPLAY" align="center" color="#2c3e50" width="3" font="kandoo" position="0 0 0.02" material="shader: flat;"></a-text>
+                </a-sphere>
+
+                <!-- 3D Restart Bubble (Starts hidden) -->
+                <a-sphere id="vr-btn-restart" class="vr-btn" position="0 1.5 -2.2" radius="0.45" color="#be2edd" material="shader: standard; opacity: 0.55; roughness: 0.05; metalness: 0.95; transparent: true; side: double" visible="false" scale="0.001 0.001 0.001">
+                    <a-sphere radius="0.4" color="#be2edd" material="shader: flat; opacity: 0.15; transparent: true" scale="0.98 0.98 0.98"></a-sphere>
+                    <a-text value="GAMEOVER\nRESTART" align="center" color="#ffffff" width="3" font="kandoo" position="0 0 0.02" material="shader: flat;"></a-text>
+                </a-sphere>
+
+                <!-- Floating VR Score HUD (Above the pond) -->
+                <a-entity id="vr-hud" position="0 2.3 -3.5" rotation="10 0 0" visible="false">
+                    <!-- Curved Glass Backing -->
+                    <a-plane width="1.6" height="0.6" color="#ffffff" material="opacity: 0.35; transparent: true; roughness: 0.2; metalness: 0.5" position="0 0 -0.02"></a-plane>
+                    <a-ring color="#ffffff" radius-inner="0" radius-outer="0.05" position="-0.75 0.25 0" material="opacity: 0.5"></a-ring>
+                    
+                    <!-- Text fields -->
+                    <a-text id="vr-hud-score" value="SCORE: 000" align="center" color="#2c3e50" width="4.5" font="kandoo" position="0 0.12 0" material="shader: flat;"></a-text>
+                    <a-text id="vr-hud-timer" value="TIME: 60" align="center" color="#57606f" width="3.8" font="kandoo" position="0 -0.12 0" material="shader: flat;"></a-text>
+                    
+                    <!-- Multiplier indicator (Only active when score x2) -->
+                    <a-text id="vr-hud-multiplier" value="DOUBLE MULTIPLIER ACTIVE!" align="center" color="#ffa801" width="3" font="kandoo" position="0 -0.32 0" visible="false" material="shader: flat;"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <!-- Camera & Interaction Setup -->
+            <a-entity id="rig" position="0 0 0">
+                <a-camera id="camera" position="0 1.6 0" look-controls="pointerLockEnabled: false">
+                    <!-- Instant raycast cursor, targets bubbles & VR buttons -->
+                    <a-cursor id="cursor"
+                              fuse="false"
+                              raycaster="objects: .bubble, .vr-btn"
+                              material="color: #0fbcf9; opacity: 0.65; shader: flat"
+                              position="0 0 -1"
+                              geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.020"
+                              animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 100; from: 0.1 0.1 0.1; to: 1 1 1"
+                              animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 50; from: 1 1 1; to: 0.1 0.1 0.1">
+                    </a-cursor>
+                </a-camera>
+            </a-entity>
+
+        </a-scene>
+    </div>
+
+    <!-- Core Game Logic Script -->
+    <script src="./app.js"></script>
+</body>
+</html>
