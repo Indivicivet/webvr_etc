@@ -387,6 +387,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Setup Keyboard steering listeners (A/D or Arrows)
     document.addEventListener('keydown', onKeyDown);
 
+    // Mouse movement steering listener (Desktop)
+    window.addEventListener('pointermove', onPointerMove);
+
     // 6. Handle click/tap to resume audio contexts safely
     document.body.addEventListener('pointerdown', () => audio.resume());
 
@@ -578,6 +581,31 @@ function onKeyDown(e) {
         // Switch lane target index (0 to 5)
         const nextLane = (game.activeLane + laneChange + 6) % 6;
         setLaneTarget(nextLane);
+        game.lastSteerTime = performance.now();
+    }
+}
+
+function onPointerMove(e) {
+    if (!game.active) return;
+    if (e.pointerType !== 'mouse') return;
+
+    // Ignore mouse movement if we are in VR mode
+    const sceneEl = document.querySelector('a-scene');
+    if (sceneEl && sceneEl.is('vr-mode')) return;
+
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const dx = e.clientX - cx;
+    const dy = cy - e.clientY; // Invert Y
+
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    // Dead zone of 40px around screen center
+    if (dist > 40) {
+        let mouseAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+        if (mouseAngle < 0) mouseAngle += 360;
+        
+        const nearestLane = Math.round(mouseAngle / 60) % 6;
+        setLaneTarget(nearestLane);
         game.lastSteerTime = performance.now();
     }
 }
