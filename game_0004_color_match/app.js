@@ -311,6 +311,30 @@ document.querySelector('a-scene').setAttribute('space-animate', '');
 // 5. INITIALIZATION & BINDINGS
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    const sceneEl = document.querySelector('a-scene');
+    const gazeCursor = document.getElementById('gaze-cursor');
+    
+    // Hide gaze cursor reticle on desktop by default (use mouse cursor instead)
+    if (gazeCursor) {
+        gazeCursor.setAttribute('visible', 'false');
+        gazeCursor.setAttribute('raycaster', 'enabled: false');
+    }
+    
+    // Toggle gaze reticle depending on VR entry/exit
+    sceneEl.addEventListener('enter-vr', () => {
+        if (gazeCursor) {
+            gazeCursor.setAttribute('visible', 'true');
+            gazeCursor.setAttribute('raycaster', 'enabled: true; objects: .target');
+        }
+    });
+    
+    sceneEl.addEventListener('exit-vr', () => {
+        if (gazeCursor) {
+            gazeCursor.setAttribute('visible', 'false');
+            gazeCursor.setAttribute('raycaster', 'enabled: false');
+        }
+    });
+
     // Connect event listeners to UI buttons
     UI.btnStart.addEventListener('click', startGame);
     UI.btnRestart.addEventListener('click', startGame);
@@ -319,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.targetRing.addEventListener('click', startGame);
     UI.vrBtnRestart.addEventListener('click', startGame);
     
-    // Gaze events for orbital cubes
+    // Gaze/Pointer events for orbital cubes
     const cubes = document.querySelectorAll('.color-cube');
     cubes.forEach(cube => {
         cube.addEventListener('click', () => {
