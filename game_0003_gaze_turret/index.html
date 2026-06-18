@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gaze Turret Defender - VR Space Shooter</title>
+    <meta name="description" content="A premium orbital defense VR experience. Look to lock-on, target, and melt space debris with your plasma cannon. Hostable on GitHub Pages.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN (v1.6.0 is stable and supports WebXR) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- Damage Screen Flash (Red/Blue flash when hit) -->
+    <div id="damage-flash" class="damage-flash"></div>
+
+    <!-- HUD Overlay for Desktop / Screen Players -->
+    <div id="hud" class="hud-container hidden">
+        <div class="hud-panel">
+            <span class="hud-label">Score</span>
+            <span id="hud-score-val" class="hud-value">0000</span>
+        </div>
+        <div class="hud-panel" style="align-items: center;">
+            <span class="hud-label">Shield Integrity</span>
+            <div class="shield-bar-wrapper">
+                <div class="shield-bar-container">
+                    <div id="shield-fill" class="shield-bar-fill"></div>
+                </div>
+                <span id="shield-percent" class="stats-value" style="font-size: 0.95rem; color: var(--neon-green);">100%</span>
+            </div>
+        </div>
+        <div class="hud-panel">
+            <span class="hud-label">Record</span>
+            <span id="hud-highscore-val" class="hud-value" style="color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan-glow);">0000</span>
+        </div>
+    </div>
+
+    <!-- Cockpit Bezel Framing for 2D Screen mode -->
+    <div id="cockpit-bezel" class="cockpit-bezel hidden"></div>
+
+    <!-- 2D Overlay UI Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">Orbital Defense</div>
+            <h1>Gaze Turret Defender</h1>
+            <p class="subtitle">Meteors and satellite debris are falling towards your station. Man the stationary plasma turret and vaporize threats by looking directly at them.</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-green"></div>
+                    <div class="guide-item-text">
+                        <h3>Gaze Lock-on</h3>
+                        <p>Hover your reticle over debris. The plasma cannons auto-fire laser beams and deal damage over time.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-cyan"></div>
+                    <div class="guide-item-text">
+                        <h3>Melt & Destroy</h3>
+                        <p>Asteroids glow orange/red under laser damage. Melt them completely in 0.8s to gain points.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-pink"></div>
+                    <div class="guide-item-text">
+                        <h3>Shield Integrity</h3>
+                        <p>Any asteroid crossing Z = -1.5 impacts shields. Shields take -25% damage. Do not let them fall!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-green">Initialize System</button>
+            <div id="vr-detect-msg" class="status-msg">Checking orbital VR headset link...</div>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-pink), #ff0000); box-shadow: 0 0 20px var(--neon-pink-glow);">System Offline</div>
+            <h1>Defenses Breached</h1>
+            <p class="subtitle">Your shield integrity has depleted to 0%. The orbital outpost was destroyed.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Threats Melted:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Best Record:</span>
+                    <span id="stat-high-score" class="stats-value" style="color: var(--neon-cyan);">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🛡️ NEW SECTOR RECORD ESTABLISHED 🛡️</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-cyan">Reboot Turret</button>
+        </div>
+    </div>
+
+    <!-- 3D VR Scene -->
+    <div id="scene-container">
+        <!-- A-Frame Scene -->
+        <a-scene gaze-turret embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+            
+            <a-assets>
+                <!-- Materials & Geometries can be pre-declared if needed -->
+            </a-assets>
+
+            <!-- Lighting Configuration -->
+            <a-entity light="type: ambient; color: #110c22; intensity: 0.9"></a-entity>
+            <a-entity light="type: directional; color: #7fdbff; intensity: 1.2; castShadow: false" position="-3 5 3"></a-entity>
+            <a-entity id="console-glow" light="type: point; color: #39ff14; intensity: 0.6; distance: 3" position="0 0.7 -1.1"></a-entity>
+
+            <!-- Starfield Skybox -->
+            <a-sky color="#050308"></a-sky>
+
+            <!-- Dynamic Star Particles (Container for drifting starfield effect) -->
+            <a-entity id="star-particle-container"></a-entity>
+
+            <!-- Left and Right Plasma Laser Lines (Drawn dynamically in JS using the 'line' component) -->
+            <a-entity id="laser-left" line="start: -0.7 0.6 -1.1; end: 0 0 -10; color: #39ff14; opacity: 0.9" visible="false"></a-entity>
+            <a-entity id="laser-right" line="start: 0.7 0.6 -1.1; end: 0 0 -10; color: #39ff14; opacity: 0.9" visible="false"></a-entity>
+
+            <!-- 3D VR Cockpit Console -->
+            <a-entity id="cockpit-3d" position="0 0.8 0">
+                <!-- Curved Front console ring -->
+                <a-torus position="0 0 -1.3" rotation="90 0 0" radius="1.3" radius-tubular="0.04" color="#1c192d" material="roughness: 0.7; metalness: 0.8"></a-torus>
+                <!-- Dashboard panels below player -->
+                <a-box position="0 0.5 -1.25" rotation="-30 0 0" width="1.0" height="0.4" depth="0.08" color="#120e22" material="roughness: 0.6; metalness: 0.9">
+                    <!-- 3D Holographic Screen UI -->
+                    <a-plane position="0 0 0.045" width="0.9" height="0.32" color="#0a0715" material="roughness: 1.0">
+                        <!-- 3D Start/Restart Button (Gaze selected in VR) -->
+                        <a-box id="vr-btn-online" class="vr-target" position="0 0 0.02" width="0.6" height="0.18" depth="0.03" color="#39ff14"
+                               material="emissive: #39ff14; emissiveIntensity: 0.6; roughness: 0.4; metalness: 0.8"
+                               animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
+                               animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+                            <a-text value="LOOK TO ACTIVATE" align="center" color="#000000" width="2.2" font="kandoo" position="0 0 0.02" material="shader: flat;"></a-text>
+                        </a-box>
+                        <!-- Cockpit Status Text (shown during gameplay) -->
+                        <a-entity id="vr-status-panel" position="0 0 0.02" visible="false">
+                            <a-text id="vr-text-score" value="SCORE: 0000" align="center" color="#39ff14" width="2.4" font="kandoo" position="0 0.06 0" material="shader: flat;"></a-text>
+                            <a-text id="vr-text-shield" value="SHIELD: 100%" align="center" color="#00f3ff" width="2.4" font="kandoo" position="0 -0.06 0" material="shader: flat;"></a-text>
+                        </a-entity>
+                    </a-plane>
+                </a-box>
+
+                <!-- Left Gun Mount and Barrel -->
+                <a-entity position="-0.75 0.5 -1.2" rotation="-15 25 0">
+                    <a-box width="0.15" height="0.15" depth="0.3" color="#120e22" material="roughness: 0.5; metalness: 0.8"></a-box>
+                    <a-cylinder radius="0.04" height="0.4" position="0 0.08 -0.15" rotation="90 0 0" color="#2c2744" material="roughness: 0.3; metalness: 0.9"></a-cylinder>
+                    <a-cylinder radius="0.02" height="0.1" position="0 0.08 -0.36" rotation="90 0 0" color="#39ff14" material="shader: flat; emissive: #39ff14; emissiveIntensity: 0.8"></a-cylinder>
+                </a-entity>
+
+                <!-- Right Gun Mount and Barrel -->
+                <a-entity position="0.75 0.5 -1.2" rotation="-15 -25 0">
+                    <a-box width="0.15" height="0.15" depth="0.3" color="#120e22" material="roughness: 0.5; metalness: 0.8"></a-box>
+                    <a-cylinder radius="0.04" height="0.4" position="0 0.08 -0.15" rotation="90 0 0" color="#2c2744" material="roughness: 0.3; metalness: 0.9"></a-cylinder>
+                    <a-cylinder radius="0.02" height="0.1" position="0 0.08 -0.36" rotation="90 0 0" color="#39ff14" material="shader: flat; emissive: #39ff14; emissiveIntensity: 0.8"></a-cylinder>
+                </a-entity>
+            </a-entity>
+
+            <!-- Debris Container (Where debris spawn) -->
+            <a-entity id="debris-container"></a-entity>
+
+            <!-- Player Rig: Camera + Gaze Cursor -->
+            <a-entity id="rig" position="0 0 0">
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                    <!-- Reticle Gaze Cursor -->
+                    <a-cursor id="gaze-cursor" 
+                              fuse="false" 
+                              geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.023" 
+                              material="color: #39ff14; shader: flat; opacity: 0.9" 
+                              raycaster="objects: .debris, .vr-target"
+                              position="0 0 -1"
+                              animation__fusing="property: scale; startEvents: fusing; dur: 800; from: 1 1 1; to: 0.2 0.2 0.2"
+                              animation__click="property: scale; startEvents: click; dur: 150; from: 0.2 0.2 0.2; to: 1 1 1"
+                              animation__mouseleave="property: scale; startEvents: mouseleave; dur: 150; to: 1 1 1">
+                    </a-cursor>
+                </a-camera>
+            </a-entity>
+
+        </a-scene>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
