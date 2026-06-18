@@ -193,6 +193,7 @@ const game = {
 // ==========================================
 const UI = {
     // 2D Dashboard Screen Overlays
+    uiLayer: document.getElementById('ui-layer'),
     panelStart: document.getElementById('panel-start'),
     panelGameOver: document.getElementById('panel-gameover'),
     btnStart: document.getElementById('btn-start'),
@@ -218,8 +219,8 @@ const UI = {
     consoleGlow: document.getElementById('console-glow')
 };
 
-// Initialize elements once DOM loads
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize elements and wire up event handlers
+function initGame() {
     // Set cylinder core element references
     const targets = document.querySelectorAll('.target-core');
     targets.forEach(el => {
@@ -244,7 +245,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Sound initialization on first user tap
     document.body.addEventListener('pointerdown', () => audio.resume());
-});
+
+    // Request Pointer Lock on Click during active gameplay (desktop support)
+    document.addEventListener('click', () => {
+        if (game.active) {
+            const canvas = document.querySelector('canvas');
+            if (canvas && document.pointerLockElement !== canvas) {
+                canvas.requestPointerLock();
+            }
+        }
+    });
+}
+
+// Run initialization immediately since script is deferred type="module"
+initGame();
 
 // Helper: pad score digits
 function formatNumber(num) {
@@ -279,6 +293,7 @@ function startGame() {
     // Sync 2D HTML Dashboard Overlays
     UI.panelStart.classList.add('hidden');
     UI.panelGameOver.classList.add('hidden');
+    UI.uiLayer.style.display = 'none'; // Hide overlay container to prevent event blocking on desktop
     UI.hud.classList.remove('hidden');
     
     updateHUDVisuals();
@@ -298,6 +313,11 @@ function startGame() {
 function gameOver() {
     game.active = false;
     audio.playGameOverFanfare();
+
+    // Exit pointer lock if active
+    if (document.pointerLockElement) {
+        document.exitPointerLock();
+    }
 
     // Persist High Scores
     let isNewRecord = false;
@@ -326,6 +346,7 @@ function gameOver() {
 
     // Show Game Over Panels (both 2D and 3D)
     UI.panelGameOver.classList.remove('hidden');
+    UI.uiLayer.style.display = 'flex'; // Restore overlay container
     
     // Scale 3D Button to reveal it
     UI.vrBtnRestart.setAttribute('visible', 'true');
