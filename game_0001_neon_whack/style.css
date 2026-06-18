@@ -1,0 +1,398 @@
+/* --- Neon Gaze Whack CSS Styling --- */
+
+:root {
+    --bg-dark: #07050f;
+    --bg-gradient: radial-gradient(circle at 50% 50%, #120a2e 0%, #07050f 100%);
+    
+    /* Neon Colors */
+    --neon-pink: #ff007f;
+    --neon-pink-glow: rgba(255, 0, 127, 0.4);
+    --neon-green: #39ff14;
+    --neon-green-glow: rgba(57, 255, 20, 0.4);
+    --neon-orange: #ff5e00;
+    --neon-orange-glow: rgba(255, 94, 0, 0.4);
+    --neon-cyan: #00f3ff;
+    --neon-cyan-glow: rgba(0, 243, 255, 0.4);
+    --neon-purple: #9d00ff;
+    --neon-purple-glow: rgba(157, 0, 255, 0.4);
+
+    --text-primary: #f3f0ff;
+    --text-secondary: #a59fc4;
+    --glass-bg: rgba(255, 255, 255, 0.02);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-glow: rgba(157, 0, 255, 0.06);
+    
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 3D Scene Viewport container */
+#scene-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Overlay UI Container */
+.ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* Let clicks pass through to canvas unless specified */
+}
+
+/* Common Overlay Panels */
+.overlay-panel {
+    pointer-events: auto; /* Active elements inside can be clicked */
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 540px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 
+                inset 0 0 30px var(--glass-glow);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 24px;
+    transition: var(--transition-smooth);
+    animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.overlay-panel.hidden {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+    pointer-events: none;
+    display: none !important;
+}
+
+/* Header & Badges */
+.logo-badge {
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+    padding: 6px 18px;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    box-shadow: 0 0 20px var(--neon-pink-glow);
+    animation: neonPulse 2s infinite alternate;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 30%, #d8b4fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(157, 0, 255, 0.2);
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Instructions / Info grids */
+.guide-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+}
+
+.guide-item {
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.guide-color-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.guide-pink {
+    background-color: var(--neon-pink);
+    box-shadow: 0 0 10px var(--neon-pink-glow);
+}
+
+.guide-green {
+    background-color: var(--neon-green);
+    box-shadow: 0 0 10px var(--neon-green-glow);
+}
+
+.guide-orange {
+    background-color: var(--neon-orange);
+    box-shadow: 0 0 10px var(--neon-orange-glow);
+}
+
+.guide-item-text h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.guide-item-text p {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+/* Buttons */
+.btn {
+    font-family: var(--font-sans);
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 16px 36px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    width: 100%;
+    margin-top: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-pink {
+    background: linear-gradient(135deg, var(--neon-purple) 0%, var(--neon-pink) 100%);
+    color: #ffffff;
+    box-shadow: 0 5px 25px var(--neon-pink-glow);
+}
+
+.btn-pink:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px var(--neon-pink-glow), 0 0 15px var(--neon-purple-glow);
+}
+
+.btn-pink:active {
+    transform: translateY(1px);
+}
+
+/* HUD Interface (Persistent screen overlay in non-VR, or calibration reference) */
+.hud-container {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    right: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 5;
+    animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hud-container.hidden {
+    opacity: 0;
+    transform: translateY(-20px);
+    display: none;
+}
+
+.hud-panel {
+    background: rgba(11, 7, 24, 0.6);
+    border: 1px solid var(--glass-border);
+    padding: 12px 20px;
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.hud-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.hud-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+#hud-score .hud-value {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 8px var(--neon-cyan-glow);
+}
+
+#hud-highscore .hud-value {
+    color: var(--neon-purple);
+    text-shadow: 0 0 8px var(--neon-purple-glow);
+}
+
+/* Health / Lives Bar */
+.lives-indicator {
+    display: flex;
+    gap: 6px;
+}
+
+.heart-icon {
+    width: 20px;
+    height: 20px;
+    background-color: var(--neon-pink);
+    clip-path: path("M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z");
+    transform: scale(0.9);
+    filter: drop-shadow(0 0 5px var(--neon-pink-glow));
+    transition: var(--transition-smooth);
+}
+
+.heart-icon.lost {
+    background-color: #373347;
+    filter: none;
+    transform: scale(0.8);
+    opacity: 0.4;
+}
+
+/* VR Button customization for A-Frame */
+.a-enter-vr {
+    position: absolute !important;
+    bottom: 30px !important;
+    right: 30px !important;
+}
+
+.a-enter-vr-button {
+    background-color: rgba(11, 7, 24, 0.8) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    transition: var(--transition-smooth) !important;
+}
+
+.a-enter-vr-button:hover {
+    background-color: var(--neon-purple) !important;
+    box-shadow: 0 0 20px var(--neon-purple-glow) !important;
+    border-color: rgba(255,255,255,0.3) !important;
+}
+
+/* Score pop animations */
+.score-pop {
+    animation: popAnim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Game Over Stats list */
+.stats-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: rgba(255,255,255,0.015);
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 12px;
+}
+
+.stats-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.stats-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.stats-new-record {
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green-glow);
+    font-weight: 800;
+    animation: flash 1s infinite alternate;
+}
+
+/* Keyframes */
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.85) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes neonPulse {
+    from {
+        box-shadow: 0 0 10px var(--neon-pink-glow), inset 0 0 5px var(--neon-pink-glow);
+    }
+    to {
+        box-shadow: 0 0 22px var(--neon-pink-glow), inset 0 0 10px var(--neon-pink-glow);
+    }
+}
+
+@keyframes flash {
+    0% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+@keyframes popAnim {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

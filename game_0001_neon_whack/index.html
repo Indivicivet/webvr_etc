@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Neon Gaze Whack - VR Arcade</title>
+    <meta name="description" content="A premium retro-futuristic VR whack-a-mole game. Look to target and deactivate cores using gaze tracking. Hostable on GitHub Pages.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN (Version 1.6.0 is stable and works with standard WebXR) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D HTML Dashboard / Screen UI Overlay -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Game Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">VR Arcade</div>
+            <h1>Neon Gaze Whack</h1>
+            <p class="subtitle">A fast-paced retro cyber whack-a-mole. You are stationary, facing a 3x3 node console. Glowing cores pop up, and you must zap them before they retreat.</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-pink"></div>
+                    <div class="guide-item-text">
+                        <h3>Standard Core (Pink)</h3>
+                        <p>Deactivate for +1 Point. Spawns frequently.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-green"></div>
+                    <div class="guide-item-text">
+                        <h3>Power Core (Green)</h3>
+                        <p>Deactivate for +3 Points. Retreats very quickly.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator guide-orange"></div>
+                    <div class="guide-item-text">
+                        <h3>Hazard Core (Orange)</h3>
+                        <p>DO NOT LOOK! Looking deducts 1 Life immediately.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-pink">Start Game</button>
+            <div class="status-msg">Click start or enter VR to play</div>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-orange), var(--neon-pink)); box-shadow: 0 0 20px var(--neon-orange-glow);">System Offline</div>
+            <h1>Game Over</h1>
+            <p class="subtitle">The core console has overloaded.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Personal Best:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🎉 NEW HIGH SCORE RECORD! 🎉</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-pink" style="background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%); box-shadow: 0 5px 25px var(--neon-cyan-glow);">Reboot System</button>
+        </div>
+    </div>
+
+    <!-- HUD Overlay for Screen Players -->
+    <div id="hud" class="hud-container hidden">
+        <div id="hud-score" class="hud-panel">
+            <span class="hud-label">Score</span>
+            <span id="hud-score-val" class="hud-value">000</span>
+        </div>
+        <div id="hud-lives" class="hud-panel">
+            <span class="hud-label">Integrity</span>
+            <div id="lives-container" class="lives-indicator">
+                <div class="heart-icon"></div>
+                <div class="heart-icon"></div>
+                <div class="heart-icon"></div>
+            </div>
+        </div>
+        <div id="hud-highscore" class="hud-panel">
+            <span class="hud-label">Best</span>
+            <span id="hud-highscore-val" class="hud-value">000</span>
+        </div>
+    </div>
+
+    <!-- 3D VR Scene -->
+    <div id="scene-container">
+        <!-- A-Frame Scene -->
+        <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+            
+            <!-- Asset Preloading -->
+            <a-assets>
+                <!-- We can define mixins or textures here if needed, but keeping it script-driven -->
+            </a-assets>
+
+            <!-- Lighting Configuration -->
+            <!-- Ambient environment light -->
+            <a-entity light="type: ambient; color: #1e163b; intensity: 0.8"></a-entity>
+            <!-- Direct key light casting soft glows -->
+            <a-entity light="type: directional; color: #b58eff; intensity: 1.2; castShadow: true" position="2 4 3"></a-entity>
+            <!-- Point light glowing near the console panel -->
+            <a-entity id="console-glow" light="type: point; color: #ff007f; intensity: 0.5; distance: 4" position="0 1.4 -1.5"></a-entity>
+
+            <!-- Retro Holodeck Space Grid (Floor & Ceiling) -->
+            <a-plane position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#ff007f" wireframe="true" material="shader: flat; opacity: 0.08"></a-plane>
+            <a-plane position="0 4 0" rotation="90 0 0" width="100" height="100" color="#00f3ff" wireframe="true" material="shader: flat; opacity: 0.08"></a-plane>
+            
+            <!-- Starry cosmic skybox background -->
+            <a-sky color="#07050f"></a-sky>
+
+            <!-- Interactive 3D VR START / RESTART Overlays (Rendered in-world for VR Headsets) -->
+            <a-entity id="vr-ui-container">
+                <!-- 3D Start Button Panel -->
+                <a-box id="vr-btn-start" class="target" position="0 1.4 -1.8" width="1.1" height="0.4" depth="0.1" color="#ff007f" 
+                       material="roughness: 0.4; metalness: 0.8; emissive: #ff007f; emissiveIntensity: 0.6"
+                       animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
+                       animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+                    <!-- Text on button -->
+                    <a-text value="LOOK AT TO START" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.06" material="shader: flat;"></a-text>
+                </a-box>
+
+                <!-- 3D Restart Button Panel (Starts hidden) -->
+                <a-box id="vr-btn-restart" class="target" position="0 1.4 -1.8" width="1.1" height="0.4" depth="0.1" color="#00f3ff" 
+                       material="roughness: 0.4; metalness: 0.8; emissive: #00f3ff; emissiveIntensity: 0.6" scale="0.001 0.001 0.001" visible="false"
+                       animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
+                       animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+                    <!-- Text on button -->
+                    <a-text value="GAME OVER\nLOOK TO RESTART" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.06" material="shader: flat;"></a-text>
+                </a-box>
+
+                <!-- Floating VR Score HUD (Always visible above the board in VR) -->
+                <a-entity id="vr-hud" position="0 2.6 -2.3" visible="false">
+                    <!-- Score text -->
+                    <a-text id="vr-hud-score" value="SCORE: 000" align="center" color="#00f3ff" width="4.5" font="kandoo" position="0 0.1 0" material="shader: flat;"></a-text>
+                    <!-- Lives text -->
+                    <a-text id="vr-hud-lives" value="INTEGRITY: III" align="center" color="#ff007f" width="4" font="kandoo" position="0 -0.1 0" material="shader: flat;"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <!-- The Core Console Board (3x3 grid panel) -->
+            <!-- Placed at y=1.35m, z=-2.4m, tilted 10 degrees back towards camera -->
+            <a-entity id="board" position="0 1.35 -2.4" rotation="-10 0 0">
+                <!-- Large Metallic Panel Base -->
+                <a-box position="0 0 -0.04" width="1.8" height="1.8" depth="0.08" color="#110d24" material="roughness: 0.6; metalness: 0.8"></a-box>
+                
+                <!-- Glowing Cyan Border Strips -->
+                <a-box position="0 0.9 0" width="1.84" height="0.02" depth="0.02" color="#00f3ff" material="shader: flat; emissive: #00f3ff; emissiveIntensity: 0.8"></a-box>
+                <a-box position="0 -0.9 0" width="1.84" height="0.02" depth="0.02" color="#00f3ff" material="shader: flat; emissive: #00f3ff; emissiveIntensity: 0.8"></a-box>
+                <a-box position="0.9 0 0" width="0.02" height="1.84" depth="0.02" color="#ff007f" material="shader: flat; emissive: #ff007f; emissiveIntensity: 0.8"></a-box>
+                <a-box position="-0.9 0 0" width="0.02" height="1.84" depth="0.02" color="#ff007f" material="shader: flat; emissive: #ff007f; emissiveIntensity: 0.8"></a-box>
+
+                <!-- Grid Node 0: Top-Left [x=-0.5, y=0.5] -->
+                <a-entity position="-0.5 0.5 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="0" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 1: Top-Center [x=0, y=0.5] -->
+                <a-entity position="0 0.5 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="1" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 2: Top-Right [x=0.5, y=0.5] -->
+                <a-entity position="0.5 0.5 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="2" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 3: Middle-Left [x=-0.5, y=0] -->
+                <a-entity position="-0.5 0 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="3" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 4: Middle-Center [x=0, y=0] -->
+                <a-entity position="0 0 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="4" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 5: Middle-Right [x=0.5, y=0] -->
+                <a-entity position="0.5 0 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="5" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 6: Bottom-Left [x=-0.5, y=-0.5] -->
+                <a-entity position="-0.5 -0.5 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="6" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 7: Bottom-Center [x=0, y=-0.5] -->
+                <a-entity position="0 -0.5 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="7" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+
+                <!-- Grid Node 8: Bottom-Right [x=0.5, y=-0.5] -->
+                <a-entity position="0.5 -0.5 0">
+                    <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
+                    <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
+                    <a-cylinder class="target target-core" data-node="8" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
+                                material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                </a-entity>
+            </a-entity>
+
+            <!-- Player Rig: Camera + Reticle Gaze Cursor -->
+            <!-- Standing height is set to 1.6m by default. Head/neck rotation handles aiming. -->
+            <a-entity id="rig" position="0 0 0">
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                    <!-- Gaze Fuse Reticle -->
+                    <!-- Highlights and zaps items by hovering over them for 300ms -->
+                    <a-cursor id="gaze-cursor" 
+                              fuse="true" 
+                              fuse-timeout="300" 
+                              geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.02" 
+                              material="color: #00f3ff; shader: flat; opacity: 0.9" 
+                              raycaster="objects: .target"
+                              position="0 0 -1"
+                              animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 300; from: 1 1 1; to: 0.1 0.1 0.1"
+                              animation__click="property: scale; startEvents: click; easing: easeOutElastic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                              animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeOutQuad; dur: 150; to: 1 1 1">
+                    </a-cursor>
+                </a-camera>
+            </a-entity>
+
+        </a-scene>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
