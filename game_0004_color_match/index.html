@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Chromatic Gaze Matcher - VR Color Puzzle</title>
+    <meta name="description" content="A cozy and casual gaze-driven VR color matching puzzle game. Match colored cubes to the central target sphere using eye gaze. Hostable on GitHub Pages.">
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Game Styling -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN (Version 1.6.0) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D HTML Dashboard overlay -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Match Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">Gaze Puzzle</div>
+            <h1>Chromatic Gaze Matcher</h1>
+            <p class="subtitle">A cozy, casual color-matching puzzle game. Look at cubes matching the central pulsing target sphere to clear them before time runs out!</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="color-swatch swatch-cyan"></div>
+                    <div class="guide-text">
+                        <h4>Cyan Core</h4>
+                        <p>#00f3ff Glow</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-magenta"></div>
+                    <div class="guide-text">
+                        <h4>Magenta Core</h4>
+                        <p>#ff007f Glow</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-yellow"></div>
+                    <div class="guide-text">
+                        <h4>Yellow Core</h4>
+                        <p>#ffff00 Glow</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-purple"></div>
+                    <div class="guide-text">
+                        <h4>Purple Core</h4>
+                        <p>#9d00ff Glow</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-primary">Begin Match</button>
+            <div class="status-msg">Click begin or look at start button in VR</div>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-magenta), var(--neon-purple)); box-shadow: 0 0 15px var(--neon-magenta-glow);">Match Offline</div>
+            <h1>Time Expired</h1>
+            <p class="subtitle">The energy field has collapsed.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Highest Wave:</span>
+                    <span id="stat-final-wave" class="stats-value">1</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Personal Best:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🎉 NEW HIGH SCORE RECORD! 🎉</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-primary">Reboot Match</button>
+        </div>
+    </div>
+
+    <!-- HUD Overlay for desktop screens -->
+    <div id="hud" class="hud-container hidden">
+        <div class="hud-left">
+            <div class="hud-panel">
+                <span class="hud-label">Score</span>
+                <span id="hud-score-val" class="hud-value">000</span>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-label">Multiplier</span>
+                <span id="hud-multiplier-val" class="hud-value">x1</span>
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="hud-panel">
+                <span class="hud-label">Wave</span>
+                <span id="hud-wave-val" class="hud-value">1</span>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-label">Time Remaining</span>
+                <span id="hud-time-val" class="hud-value">20.0s</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Scene Viewport -->
+    <div id="scene-container">
+        <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+            
+            <!-- Audio or other Assets could go here, but using pure dynamic audio context synthesis -->
+            <a-assets></a-assets>
+
+            <!-- Lighting -->
+            <a-entity light="type: ambient; color: #151129; intensity: 0.6"></a-entity>
+            <a-entity light="type: directional; color: #a980ff; intensity: 0.9; castShadow: true" position="1 3 2"></a-entity>
+            <a-entity id="target-glow" light="type: point; color: #ff007f; intensity: 0.0; distance: 4" position="0 1.4 -2"></a-entity>
+
+            <!-- Cosmic Background & Space Grid Floor/Ceiling -->
+            <a-sky color="#07050f"></a-sky>
+            <a-plane position="0 0 0" rotation="-90 0 0" width="80" height="80" color="#9d00ff" wireframe="true" material="shader: flat; opacity: 0.04"></a-plane>
+            <a-plane position="0 3.5 0" rotation="90 0 0" width="80" height="80" color="#00f3ff" wireframe="true" material="shader: flat; opacity: 0.04"></a-plane>
+
+            <!-- Star Dust Particle Group (populating programmatically in JS, but creating container) -->
+            <a-entity id="dust-particles"></a-entity>
+
+            <!-- Target Sphere: central focus point -->
+            <a-sphere id="target-sphere" 
+                      class="target"
+                      radius="0.25" 
+                      position="0 1.4 -2" 
+                      color="#ff007f" 
+                      material="roughness: 0.15; metalness: 0.85; emissive: #ff007f; emissiveIntensity: 0.55; transparent: true; opacity: 0.9"
+                      animation__spin="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear">
+            </a-sphere>
+
+            <!-- Gaze Start Ring directly above Target Sphere in 3D -->
+            <a-ring id="target-ring" 
+                    class="target"
+                    position="0 1.95 -2" 
+                    radius-inner="0.10" 
+                    radius-outer="0.14" 
+                    color="#00f3ff" 
+                    material="shader: flat; side: double; opacity: 0.7; emissive: #00f3ff; emissiveIntensity: 0.5" 
+                    rotation="90 0 0"
+                    animation__spin="property: rotation; to: 90 360 0; loop: true; dur: 6000; easing: linear">
+                <a-text value="LOOK TO\nSTART" align="center" color="#ffffff" width="1.5" font="kandoo" position="0 0 0.02" rotation="180 0 0" material="shader: flat;"></a-text>
+            </a-ring>
+
+            <!-- Puzzle Cube Group -->
+            <a-entity id="puzzle-group" position="0 1.4 -2">
+                <a-box class="target color-cube" data-index="0" position="0.7 0 0" width="0.14" height="0.14" depth="0.14" color="#00f3ff" material="roughness: 0.15; metalness: 0.8; emissive: #00f3ff; emissiveIntensity: 0.25"></a-box>
+                <a-box class="target color-cube" data-index="1" position="0.495 0.495 0" width="0.14" height="0.14" depth="0.14" color="#ff007f" material="roughness: 0.15; metalness: 0.8; emissive: #ff007f; emissiveIntensity: 0.25"></a-box>
+                <a-box class="target color-cube" data-index="2" position="0 0.7 0" width="0.14" height="0.14" depth="0.14" color="#ffff00" material="roughness: 0.15; metalness: 0.8; emissive: #ffff00; emissiveIntensity: 0.25"></a-box>
+                <a-box class="target color-cube" data-index="3" position="-0.495 0.495 0" width="0.14" height="0.14" depth="0.14" color="#9d00ff" material="roughness: 0.15; metalness: 0.8; emissive: #9d00ff; emissiveIntensity: 0.25"></a-box>
+                <a-box class="target color-cube" data-index="4" position="-0.7 0 0" width="0.14" height="0.14" depth="0.14" color="#00f3ff" material="roughness: 0.15; metalness: 0.8; emissive: #00f3ff; emissiveIntensity: 0.25"></a-box>
+                <a-box class="target color-cube" data-index="5" position="-0.495 -0.495 0" width="0.14" height="0.14" depth="0.14" color="#ff007f" material="roughness: 0.15; metalness: 0.8; emissive: #ff007f; emissiveIntensity: 0.25"></a-box>
+                <a-box class="target color-cube" data-index="6" position="0 -0.7 0" width="0.14" height="0.14" depth="0.14" color="#ffff00" material="roughness: 0.15; metalness: 0.8; emissive: #ffff00; emissiveIntensity: 0.25"></a-box>
+                <a-box class="target color-cube" data-index="7" position="0.495 -0.495 0" width="0.14" height="0.14" depth="0.14" color="#9d00ff" material="roughness: 0.15; metalness: 0.8; emissive: #9d00ff; emissiveIntensity: 0.25"></a-box>
+            </a-entity>
+
+            <!-- VR In-scene UI Panels -->
+            <a-entity id="vr-ui-container">
+                <!-- LOOK TO RESTART Button (Starts hidden, shown on game over) -->
+                <a-box id="vr-btn-restart" 
+                       class="target" 
+                       position="0 0.9 -1.6" 
+                       width="1.0" 
+                       height="0.32" 
+                       depth="0.08" 
+                       color="#ff007f" 
+                       material="roughness: 0.4; metalness: 0.8; emissive: #ff007f; emissiveIntensity: 0.65" 
+                       scale="0.001 0.001 0.001" 
+                       visible="false"
+                       animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
+                       animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+                    <a-text value="GAME OVER\nLOOK TO RESTART" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.05" material="shader: flat;"></a-text>
+                </a-box>
+
+                <!-- VR Floating HUD -->
+                <a-entity id="vr-hud" position="0 2.3 -1.8" rotation="15 0 0" visible="false">
+                    <!-- Semi-transparent backing panel -->
+                    <a-plane width="1.4" height="0.6" color="#0c0b13" material="opacity: 0.85; transparent: true; roughness: 0.5" position="0 0 -0.01"></a-plane>
+                    
+                    <!-- HUD Text -->
+                    <a-text id="vr-hud-score" value="SCORE: 000" align="center" color="#00f3ff" width="3.6" font="kandoo" position="0 0.18 0.01" material="shader: flat;"></a-text>
+                    <a-text id="vr-hud-mult" value="MULTIPLIER: x1" align="center" color="#ffff00" width="3.0" font="kandoo" position="0 0.0 0.01" material="shader: flat;"></a-text>
+                    <a-text id="vr-hud-timer" value="TIME: 20.0s" align="center" color="#ff007f" width="3.2" font="kandoo" position="0 -0.18 0.01" material="shader: flat;"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <!-- Camera Rig + Gaze Reticle -->
+            <a-entity id="rig" position="0 0 0">
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                    <!-- 400ms Gaze Fuse Reticle -->
+                    <a-cursor id="gaze-cursor" 
+                              fuse="true" 
+                              fuse-timeout="400" 
+                              geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.02" 
+                              material="color: #00f3ff; shader: flat; opacity: 0.9" 
+                              raycaster="objects: .target"
+                              position="0 0 -1"
+                              animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 400; from: 1 1 1; to: 0.1 0.1 0.1"
+                              animation__click="property: scale; startEvents: click; easing: easeOutElastic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                              animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeOutQuad; dur: 150; to: 1 1 1">
+                    </a-cursor>
+                </a-camera>
+            </a-entity>
+
+        </a-scene>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
