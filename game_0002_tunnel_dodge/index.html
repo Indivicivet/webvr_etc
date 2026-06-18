@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gyro Tunnel Dodge - VR Space Glider</title>
+    <meta name="description" content="An endless-runner style WebVR space glider game. Steer with gyro head tilting to dodge red barriers. Hostable on GitHub Pages.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN (v1.6.0 is stable and supports WebXR) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D Screen UI Overlay Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Game / Calibration Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">VR Glider Pilot</div>
+            <h1>Tunnel Dodge</h1>
+            <p class="subtitle">Tilt or turn your head left or right to pilot your glider through a glowing hexagonal wireframe tunnel. Dodge the red energy barriers!</p>
+            
+            <!-- Instructions and details -->
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="guide-indicator indicator-cyan"></div>
+                    <div class="guide-text">
+                        <h3>Steering (Head Tilt / Yaw)</h3>
+                        <p>In VR: Tilt/roll your head or turn your head to steer. <br>On Desktop: Use A/D or Left/Right Arrow keys.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-indicator indicator-pink"></div>
+                    <div class="guide-text">
+                        <h3>Avoid Red Obstacles</h3>
+                        <p>Obstacles block 1 to 4 lanes. Move into one of the open lanes to survive and score points.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calibration card -->
+            <div class="calib-box">
+                <strong>CALIBRATION PROMPT:</strong><br>
+                Look straight ahead and click the button below to zero your gyro zero-point and launch!
+            </div>
+
+            <button id="btn-start" class="btn btn-cyan">Calibrate & Launch</button>
+            <div class="status-msg">Click launch or enter VR to play</div>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-pink), var(--neon-orange)); box-shadow: 0 0 20px var(--neon-pink-glow);">Glider Crashed</div>
+            <h1>System Offline</h1>
+            <p class="subtitle">Your ship collided with a barrier and shields failed.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Best Record:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🚀 NEW BEST DISTANCE RECORD! 🚀</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-pink">Reboot Glider</button>
+        </div>
+    </div>
+
+    <!-- 2D HUD Overlay (Top of screen, visible while playing) -->
+    <div id="hud" class="hud-container hidden">
+        <div id="hud-score" class="hud-panel">
+            <span class="hud-label">Distance</span>
+            <span id="hud-score-val" class="hud-value hud-score-cyan">0000</span>
+        </div>
+        <div id="hud-shields" class="hud-panel">
+            <span class="hud-label">Glider Shield</span>
+            <div id="shield-indicator" class="shield-container">
+                <div class="shield-cell"></div>
+                <div class="shield-cell"></div>
+                <div class="shield-cell"></div>
+            </div>
+        </div>
+        <div id="hud-highscore" class="hud-panel">
+            <span class="hud-label">Best Record</span>
+            <span id="hud-highscore-val" class="hud-value">0000</span>
+        </div>
+    </div>
+
+    <!-- Desktop Keyboard steer instruction indicator (only shown on desktop) -->
+    <div id="desktop-controls-hint" class="hidden">
+        Use A / D or Left / Right Arrows to Steer
+    </div>
+
+    <!-- 3D WebVR Scene Viewport -->
+    <div id="scene-container">
+        <!-- Render shadow maps, enable color management -->
+        <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+            
+            <!-- Asset Manager -->
+            <a-assets>
+                <!-- We build elements procedurally to save space and ensure robustness -->
+            </a-assets>
+
+            <!-- Lighting Configuration -->
+            <a-entity light="type: ambient; color: #100b26; intensity: 0.8"></a-entity>
+            <a-entity light="type: directional; color: #00e5ff; intensity: 1.0" position="0 5 2"></a-entity>
+            <!-- Cockpit ambient glow light source -->
+            <a-entity id="cockpit-light" light="type: point; color: #00f0ff; intensity: 0.3; distance: 2" position="0 1.6 -0.5"></a-entity>
+
+            <!-- Sky background (deep space purple/black) -->
+            <a-sky color="#05030a"></a-sky>
+            
+            <!-- Starfield Particle Simulation (static stars in distance for depth) -->
+            <a-entity id="starfield"></a-entity>
+
+            <!-- Tunnel Container (populated dynamically in app.js) -->
+            <a-entity id="tunnel-container"></a-entity>
+
+            <!-- Obstacle Container (populated dynamically in app.js) -->
+            <a-entity id="obstacle-container"></a-entity>
+
+            <!-- Player Glider Cockpit Rig -->
+            <a-entity id="rig" position="0 1.6 0">
+                <!-- Camera representing player eyes. Disable WASD default controls -->
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                    
+                    <!-- VR 3D Cockpit Console & HUD (Tethered to camera for perfect alignment in headsets) -->
+                    <a-entity id="cockpit" position="0 0 -0.8">
+                        
+                        <!-- Outer dashboard visor outline (for spatial grounding) -->
+                        <a-entity id="visor-frame" 
+                                  geometry="primitive: ring; radiusInner: 0.38; radiusOuter: 0.40; thetaLength: 180; thetaStart: 180" 
+                                  material="color: #00f0ff; shader: flat; opacity: 0.25; transparent: true"
+                                  position="0 0.1 0"></a-entity>
+                        
+                        <!-- Center visor targeting ring (for gyro centering guide at start) -->
+                        <a-entity id="target-reticle" 
+                                  geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.024" 
+                                  material="color: #00f0ff; shader: flat; opacity: 0.15; transparent: true"
+                                  position="0 0 0"></a-entity>
+
+                        <!-- Holographic Dashboard Mini-Radar (Hexagonal indicator showing lanes and obstacles) -->
+                        <a-entity id="hologram-radar" position="0 -0.25 0" rotation="-15 0 0" scale="0.8 0.8 0.8">
+                            <!-- Outer hexagonal border -->
+                            <a-cylinder segments-radial="6" open-ended="true" radius="0.1" height="0.005" rotation="90 0 0" 
+                                        material="color: #00f0ff; shader: flat; wireframe: true; opacity: 0.3; transparent: true"></a-cylinder>
+                            <!-- Mini Glider Position Dot (cyan sphere rotating around radar) -->
+                            <a-sphere id="radar-glider-dot" radius="0.008" color="#00f0ff" position="0 0 0"
+                                      material="shader: flat; emissive: #00f0ff; emissiveIntensity: 1.0"></a-sphere>
+                        </a-entity>
+
+                        <!-- In-VR Score Display (placed on left side of dashboard visor) -->
+                        <a-entity id="vr-hud-score" position="-0.25 0.18 0" scale="0.25 0.25 0.25">
+                            <a-text value="DISTANCE" align="center" color="#8e88b3" font="exo2bold" width="3" material="shader: flat;"></a-text>
+                            <a-text id="vr-score-val" value="0000" align="center" color="#00f0ff" font="exo2bold" position="0 -0.2 0" width="5" material="shader: flat;"></a-text>
+                        </a-entity>
+
+                        <!-- In-VR Shields Display (placed on right side of dashboard visor) -->
+                        <a-entity id="vr-hud-shields" position="0.25 0.18 0" scale="0.25 0.25 0.25">
+                            <a-text value="SHIELDS" align="center" color="#8e88b3" font="exo2bold" width="3" material="shader: flat;"></a-text>
+                            <a-text id="vr-shields-val" value="III" align="center" color="#ff0055" font="exo2bold" position="0 -0.2 0" width="5" material="shader: flat;"></a-text>
+                        </a-entity>
+
+                        <!-- In-VR Start Button (Look at to Start, visible only at start) -->
+                        <a-box id="vr-btn-start" position="0 0 0.1" width="0.35" height="0.12" depth="0.02" color="#00f0ff" class="target"
+                               material="roughness: 0.4; metalness: 0.8; emissive: #00f0ff; emissiveIntensity: 0.5"
+                               scale="0.001 0.001 0.001" visible="false"
+                               animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 150; startEvents: mouseenter"
+                               animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave">
+                            <a-text value="START FLIGHT" align="center" color="#ffffff" font="exo2bold" width="1.2" position="0 0 0.012" material="shader: flat;"></a-text>
+                        </a-box>
+
+                        <!-- In-VR Restart Button (Look at to Restart, visible only at gameover) -->
+                        <a-box id="vr-btn-restart" position="0 0 0.1" width="0.35" height="0.12" depth="0.02" color="#ff0055" class="target"
+                               material="roughness: 0.4; metalness: 0.8; emissive: #ff0055; emissiveIntensity: 0.5"
+                               scale="0.001 0.001 0.001" visible="false"
+                               animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 150; startEvents: mouseenter"
+                               animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave">
+                            <a-text value="REBOOT SYSTEM" align="center" color="#ffffff" font="exo2bold" width="1.2" position="0 0 0.012" material="shader: flat;"></a-text>
+                        </a-box>
+                    </a-entity>
+
+                    <!-- Interactive Reticle Gaze Cursor for VR Mode (Invisible or tiny, used to click VR buttons) -->
+                    <a-cursor id="gaze-cursor" 
+                              fuse="true" 
+                              fuse-timeout="500" 
+                              geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.009" 
+                              material="color: #00f0ff; shader: flat; opacity: 0.6; transparent: true" 
+                              raycaster="objects: .target"
+                              position="0 0 -0.5">
+                    </a-cursor>
+
+                </a-camera>
+            </a-entity>
+
+            <!-- Physical Glider Wings representation in the 3D world -->
+            <!-- Placed at Z = -2.5 relative to the camera platform. Moves in lanes. -->
+            <a-entity id="glider-visual" position="0 1.6 -2.5">
+                <!-- Glider Center Body -->
+                <a-cone radius-bottom="0.06" radius-top="0" height="0.35" rotation="90 0 0" color="#00f0ff"
+                        material="emissive: #00f0ff; emissiveIntensity: 0.6; metalness: 0.9; roughness: 0.2"></a-cone>
+                <!-- Glider Left Wing -->
+                <a-triangle vertex-a="0 0 0" vertex-b="-0.35 -0.05 0.1" vertex-c="-0.05 0 -0.1" color="#00aaff"
+                            material="opacity: 0.8; transparent: true; metalness: 0.9"></a-triangle>
+                <!-- Glider Right Wing -->
+                <a-triangle vertex-a="0 0 0" vertex-b="0.35 -0.05 0.1" vertex-c="0.05 0 -0.1" color="#00aaff"
+                            material="opacity: 0.8; transparent: true; metalness: 0.9"></a-triangle>
+                <!-- Glider Engine Fire Glow -->
+                <a-cone radius-bottom="0.03" radius-top="0" height="0.15" rotation="-90 0 0" position="0 0 0.2" color="#ff7700"
+                        material="shader: flat; emissive: #ff7700; emissiveIntensity: 2"></a-cone>
+            </a-entity>
+
+        </a-scene>
+    </div>
+
+    <!-- Application Module Script -->
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
