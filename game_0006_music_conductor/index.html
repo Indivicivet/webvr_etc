@@ -147,42 +147,41 @@
         <!-- We set vr-mode-ui="enabled: true" to show the VR button at bottom right -->
         <a-scene embedded vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true; sortObjects: true;">
             <a-assets>
-                <!-- We can define standard mixins for colors or animations if needed -->
+                <!-- Canvas texture asset for the neon floor grid -->
+                <canvas id="grid-canvas" width="512" height="512"></canvas>
             </a-assets>
 
             <!-- 1. Player / Camera Rig -->
             <a-entity id="rig" position="0 0 0">
                 <a-camera id="camera" look-controls wasd-controls-enabled="false" position="0 1.6 0">
-                    <!-- Reticle Cursor for gaze input -->
-                    <!-- raycaster is optimized to check only objects with class "instrument" -->
+                    <!-- Reticle Cursor for gaze input (looks for objects with class "instrument") -->
                     <a-cursor id="reticle"
-                        raycaster="objects: .instrument; interval: 100;"
+                        raycaster="objects: .instrument; interval: 50;"
                         fuse="false"
                         position="0 0 -1"
                         geometry="primitive: ring; radiusInner: 0.018; radiusOuter: 0.028"
-                        material="color: #ffffff; shader: flat; opacity: 0.7; transparent: true"
-                        animation__mouseenter="property: scale; to: 1.4 1.4 1.4; dur: 150; easing: easeOutQuad"
-                        animation__mouseleave="property: scale; to: 1 1 1; dur: 150; easing: easeOutQuad">
+                        material="color: #ffffff; shader: flat; opacity: 0.75; transparent: true"
+                        animation__mouseenter="property: scale; to: 1.4 1.4 1.4; dur: 120; easing: easeOutQuad"
+                        animation__mouseleave="property: scale; to: 1 1 1; dur: 120; easing: easeOutQuad">
                     </a-cursor>
                     <!-- Small laser pointer to help line up gaze -->
                     <a-entity id="laser"
-                        geometry="primitive: cylinder; radius: 0.002; height: 3"
-                        material="color: #cdaeff; shader: flat; opacity: 0.15; transparent: true"
-                        position="0 0 -1.5"
+                        geometry="primitive: cylinder; radius: 0.0018; height: 3.5"
+                        material="color: #cdaeff; shader: flat; opacity: 0.12; transparent: true"
+                        position="0 0 -1.75"
                         rotation="90 0 0">
                     </a-entity>
                 </a-camera>
             </a-entity>
 
             <!-- 2. Ambient & Spotlight Stage Lighting -->
-            <a-entity light="type: ambient; color: #181533; intensity: 0.3;"></a-entity>
-            
-            <!-- High directional light representing background concert wash -->
-            <a-entity light="type: directional; color: #5345a3; intensity: 0.6; castShadow: false;" position="0 8 -4"></a-entity>
+            <a-entity light="type: ambient; color: #181533; intensity: 0.35;"></a-entity>
+            <a-entity light="type: directional; color: #5345a3; intensity: 0.5; castShadow: false;" position="0 8 -4"></a-entity>
 
             <!-- 3. Neon Spotlights that sweep left/right (animated by parent rotation in app.js) -->
             <a-entity id="spotlight-left" position="-5 6 -6" rotation="40 30 0">
-                <a-entity geometry="primitive: cone; radiusBottom: 1.8; radiusTop: 0.02; height: 12"
+                <a-entity id="spotlight-left-cone"
+                          geometry="primitive: cone; radiusBottom: 1.8; radiusTop: 0.02; height: 12"
                           material="color: #ff0055; shader: flat; transparent: true; opacity: 0.12; side: double"
                           rotation="90 0 0">
                 </a-entity>
@@ -190,20 +189,21 @@
             </a-entity>
 
             <a-entity id="spotlight-right" position="5 6 -6" rotation="40 -30 0">
-                <a-entity geometry="primitive: cone; radiusBottom: 1.8; radiusTop: 0.02; height: 12"
+                <a-entity id="spotlight-right-cone"
+                          geometry="primitive: cone; radiusBottom: 1.8; radiusTop: 0.02; height: 12"
                           material="color: #00f0ff; shader: flat; transparent: true; opacity: 0.12; side: double"
                           rotation="90 0 0">
                 </a-entity>
                 <a-entity light="type: spot; color: #00f0ff; intensity: 1.5; angle: 25; penumbra: 0.5" rotation="0 0 0"></a-entity>
             </a-entity>
 
-            <!-- 3. Stage Floor & Neon Cyber Grid (Created dynamically in app.js on the canvas floor texture) -->
+            <!-- 4. Stage Floor & Neon Cyber Grid (Source is the canvas grid-canvas) -->
             <a-plane id="grid-floor"
                      position="0 0.01 0"
                      rotation="-90 0 0"
                      width="40"
                      height="40"
-                     material="roughness: 0.9; metalness: 0.1; transparent: true; opacity: 0.95;">
+                     material="src: #grid-canvas; roughness: 0.9; metalness: 0.1; transparent: true; opacity: 0.95;">
             </a-plane>
             
             <a-plane id="sub-floor"
@@ -214,19 +214,25 @@
                      material="color: #050308; roughness: 1.0; metalness: 0.0;">
             </a-plane>
 
-            <!-- 4. Interactive Music Instrument Nodes (spaced in a horizontal arc) -->
+            <!-- 5. Interactive Music Instrument Nodes -->
             
-            <!-- DRUMS NODE (Pink Octahedron) -->
-            <a-entity id="node-drums" class="instrument" position="-1.36 1.5 -2.67">
-                <!-- Outer Node shape -->
+            <!-- DRUMS NODE -->
+            <a-entity id="node-drums" position="-1.36 1.5 -2.67">
+                <!-- Visual shape -->
                 <a-entity id="node-drums-mesh" 
                           geometry="primitive: octahedron"
                           material="color: #ff0055; emissive: #ff0055; emissiveIntensity: 0.25; roughness: 0.15; metalness: 0.7"
                           scale="0.32 0.32 0.32">
                 </a-entity>
-                <!-- Label above node -->
+                <!-- Invisible Raycast Hitbox (Decoupled from scaling/pulsing meshes) -->
+                <a-entity class="instrument" id="hit-drums"
+                          geometry="primitive: sphere; radius: 0.45"
+                          material="opacity: 0.0; transparent: true; shader: flat"
+                          position="0 0 0">
+                </a-entity>
+                <!-- Label -->
                 <a-text value="DRUMS" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#ff0055" font="monoid" shader="flat"></a-text>
-                <!-- Glow ring indicator on the floor directly below -->
+                <!-- Glow ring indicator on the floor -->
                 <a-ring id="ring-drums" 
                         radius-inner="0.38" 
                         radius-outer="0.42" 
@@ -236,14 +242,22 @@
                 </a-ring>
             </a-entity>
 
-            <!-- BASS NODE (Cyan Torus) -->
-            <a-entity id="node-bass" class="instrument" position="-0.47 1.4 -2.96">
+            <!-- BASS NODE -->
+            <a-entity id="node-bass" position="-0.47 1.4 -2.96">
+                <!-- Visual shape -->
                 <a-entity id="node-bass-mesh" 
                           geometry="primitive: torus; radius: 0.28; radiusTubular: 0.04"
                           material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.25; roughness: 0.15; metalness: 0.7"
                           rotation="90 0 0"
                           scale="1 1 1">
                 </a-entity>
+                <!-- Invisible Raycast Hitbox -->
+                <a-entity class="instrument" id="hit-bass"
+                          geometry="primitive: sphere; radius: 0.45"
+                          material="opacity: 0.0; transparent: true; shader: flat"
+                          position="0 0 0">
+                </a-entity>
+                <!-- Label -->
                 <a-text value="BASS" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#00f0ff" font="monoid" shader="flat"></a-text>
                 <a-ring id="ring-bass" 
                         radius-inner="0.38" 
@@ -254,8 +268,8 @@
                 </a-ring>
             </a-entity>
 
-            <!-- SYNTH NODE (Purple Wireframe Box + Floating Core Points) -->
-            <a-entity id="node-synth" class="instrument" position="0.47 1.4 -2.96">
+            <!-- SYNTH NODE -->
+            <a-entity id="node-synth" position="0.47 1.4 -2.96">
                 <!-- Inner Core Sphere -->
                 <a-entity id="node-synth-core"
                           geometry="primitive: sphere; radius: 0.15"
@@ -267,6 +281,13 @@
                           material="color: #a300ff; emissive: #a300ff; emissiveIntensity: 0.1; wireframe: true"
                           scale="1 1 1">
                 </a-entity>
+                <!-- Invisible Raycast Hitbox -->
+                <a-entity class="instrument" id="hit-synth"
+                          geometry="primitive: sphere; radius: 0.45"
+                          material="opacity: 0.0; transparent: true; shader: flat"
+                          position="0 0 0">
+                </a-entity>
+                <!-- Label -->
                 <a-text value="SYNTH" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#a300ff" font="monoid" shader="flat"></a-text>
                 <a-ring id="ring-synth" 
                         radius-inner="0.38" 
@@ -277,13 +298,21 @@
                 </a-ring>
             </a-entity>
 
-            <!-- LEAD NODE (Gold Diamond) -->
-            <a-entity id="node-lead" class="instrument" position="1.36 1.5 -2.67">
+            <!-- LEAD NODE -->
+            <a-entity id="node-lead" position="1.36 1.5 -2.67">
+                <!-- Visual shape -->
                 <a-entity id="node-lead-mesh" 
                           geometry="primitive: octahedron"
                           material="color: #ffbb00; emissive: #ffbb00; emissiveIntensity: 0.25; roughness: 0.1; metalness: 0.8"
                           scale="0.25 0.55 0.25">
                 </a-entity>
+                <!-- Invisible Raycast Hitbox -->
+                <a-entity class="instrument" id="hit-lead"
+                          geometry="primitive: sphere; radius: 0.45"
+                          material="opacity: 0.0; transparent: true; shader: flat"
+                          position="0 0 0">
+                </a-entity>
+                <!-- Label -->
                 <a-text value="LEAD" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#ffbb00" font="monoid" shader="flat"></a-text>
                 <a-ring id="ring-lead" 
                         radius-inner="0.38" 
@@ -294,7 +323,7 @@
                 </a-ring>
             </a-entity>
 
-            <!-- 5. Floating Star / Cyberdust Particles (animated in app.js) -->
+            <!-- 6. Floating Star / Cyberdust Particles -->
             <a-entity id="dust-container"></a-entity>
             
         </a-scene>

@@ -867,9 +867,8 @@ function initParticles() {
 // 5. CANVAS CORE GRID GENERATOR
 // ==========================================
 function generateGridFloor() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
+    const canvas = document.getElementById('grid-canvas');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
     // Core ground background
@@ -905,20 +904,10 @@ function generateGridFloor() {
         }
     }
     
-    // Create Three.js texture repeats
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(12, 12);
-    
-    // Apply grid texture to plane
+    // Tell A-Frame to refresh canvas texture map once loaded
     const floorEl = document.querySelector('#grid-floor');
-    if (floorEl) {
-        const mesh = floorEl.getObject3D('mesh');
-        if (mesh && mesh.material) {
-            mesh.material.map = texture;
-            mesh.material.needsUpdate = true;
-        }
+    if (floorEl && floorEl.components && floorEl.components.material && floorEl.components.material.material && floorEl.components.material.material.map) {
+        floorEl.components.material.material.map.needsUpdate = true;
     }
 }
 
@@ -950,9 +939,9 @@ function registerFrameTick() {
             if (game.currentVolume[name] > 1) game.currentVolume[name] = 1;
         });
 
-        // 2. Animate spotlights sweeping
-        const spotlightLeft = document.querySelector('#spotlight-left-beam');
-        const spotlightRight = document.querySelector('#spotlight-right-beam');
+        // 2. Animate spotlights sweeping (rotating parent entities)
+        const spotlightLeft = document.querySelector('#spotlight-left');
+        const spotlightRight = document.querySelector('#spotlight-right');
         
         if (spotlightLeft) {
             const angleY = 30 + Math.sin(time * 0.0008) * 25;
@@ -1193,8 +1182,8 @@ function checkChallengeRecipes(dt) {
 
 // Visual success cue
 function flashSuccessSpotlights() {
-    const leftBeam = document.querySelector('#spotlight-left-beam');
-    const rightBeam = document.querySelector('#spotlight-right-beam');
+    const leftBeam = document.querySelector('#spotlight-left-cone');
+    const rightBeam = document.querySelector('#spotlight-right-cone');
     if (leftBeam && rightBeam) {
         // Temporarily change spotlights to neon green
         leftBeam.setAttribute('material', 'color', '#39ff14');
@@ -1216,7 +1205,7 @@ function bindGazeTriggers() {
     const nodeNames = ['drums', 'bass', 'synth', 'lead'];
     
     nodeNames.forEach(name => {
-        const el = document.querySelector(`#node-${name}`);
+        const el = document.querySelector(`#hit-${name}`);
         if (el) {
             // Gaze / Cursor Raycaster Hover Events
             el.addEventListener('mouseenter', () => {
