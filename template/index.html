@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>WebXR VR Template</title>
+    <meta name="description" content="A premium, zero-build WebXR template for creating immersive virtual reality experiences. Hostable on GitHub Pages.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- Immersive WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay for Non-VR / Landing Screen -->
+    <div id="ui-overlay" class="overlay">
+        <div class="glass-card">
+            <header class="header">
+                <div class="logo-badge">WEBXR</div>
+                <h1>WebXR Playground</h1>
+                <p class="subtitle">A premium, zero-build virtual reality template. Perfect for quick deployment on GitHub Pages.</p>
+            </header>
+
+            <section class="info-section">
+                <div class="control-box">
+                    <h3>🎮 VR Mode</h3>
+                    <ul>
+                        <li><strong>Enter VR:</strong> Click the "ENTER VR" button at the bottom of the screen.</li>
+                        <li><strong>Aim:</strong> Point your VR controllers at the interactive shapes.</li>
+                        <li><strong>Select:</strong> Pull the Trigger to change colors & trigger haptics.</li>
+                    </ul>
+                </div>
+                
+                <div class="control-box">
+                    <h3>💻 Desktop / Fallback</h3>
+                    <ul>
+                        <li><strong>Look Around:</strong> Drag with left mouse button / swipe.</li>
+                        <li><strong>Interact:</strong> Click on objects to trigger animations.</li>
+                        <li><strong>Pan/Zoom:</strong> Right-click drag / pinch to zoom.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <footer class="footer">
+                <button id="btn-desktop-enter" class="btn btn-primary">Explore on Desktop</button>
+                <div id="vr-status-msg" class="status-msg">Detecting VR hardware...</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
