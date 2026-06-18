@@ -1,0 +1,79 @@
+================================================================================
+GAME DESIGN SKETCH: GAZE AUDIO CONDUCTOR (0006)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+An interactive musical toy/game. The player stands in the center of a neon stage. 
+In front of them are 4 floating musical nodes (Drums, Bass, Synth, and Lead). 
+By gazing at different nodes, the player unmutes or applies audio filters (like 
+lowpass sweeps) to those tracks, allowing them to dynamically mix a looping song 
+just by looking around.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: 100% Gaze-responsive. No buttons or triggers. The game continuously 
+  tracks which musical node the reticle is hovering over.
+* Field of View (FoV): Designed for a 60-degree FoV. The 4 nodes are arranged in 
+  a neat horizontal arc directly in front of the player (spaced about 15 degrees 
+  apart).
+* Comfort: Completely stationary. Gentle audio-reactive animations on the nodes 
+  correlate to the volume/frequency of the respective track.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Background: A dark, atmospheric concert stage look with neon spotlight beams.
+* Audio Nodes: Four distinct, glowing abstract geometries representing the stems:
+  - Drum Node: A pulsing octahedron (pulsates with the kick drum).
+  - Bass Node: A low, heavy horizontal ring that ripples.
+  - Synth Node: A glowing matrix of points.
+  - Lead Node: A sharp, rotating diamond.
+* Laser Pointer: A subtle guide line extending from the player's view direction.
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Setup: A loop of a multi-track electronic song plays. Initially, all stems 
+   are muted except the Drums.
+2. Focus: When the player gazes at a node:
+   - The node lights up and begins to spin faster.
+   - The volume of that instrument track ramps up smoothly from 0% to 100% (fade-in).
+   - An audio lowpass filter sweeps open, adding brightness.
+3. Looking Away: When the player looks away:
+   - The volume slowly fades back down to a quiet ambient level (e.g., 10% volume) 
+     or filters sweep closed.
+4. "Solo" Challenge Mode: A customer order or "recipe" sequence flashes on screen 
+   (e.g., "DRUM + LEAD"). The player must coordinate their gaze or sweep back and 
+   forth between nodes to maintain the correct combination of active instruments 
+   to match the rhythm prompt.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Web Audio API:
+  Load 4 synchronized audio elements looping in parallel.
+  `const drumTrack = new Audio('drums.mp3'); drumTrack.loop = true; drumTrack.play();`
+  Use Web Audio API GainNodes to control the volume of each element individually.
+
+* A-Frame Elements:
+  `<a-scene>`
+    `<a-camera>`
+      `<a-cursor raycaster="objects: .instrument" fuse="false"></a-cursor>`
+    `</a-camera>`
+    
+    `<a-entity class="instrument" id="drum-node" position="-1.5 1.5 -3" geometry="primitive: octahedron" material="color: red"></a-entity>`
+    `<a-entity class="instrument" id="bass-node" position="-0.5 1.5 -3" geometry="primitive: torus" material="color: blue"></a-entity>`
+    `<a-entity class="instrument" id="synth-node" position="0.5 1.5 -3" geometry="primitive: box" material="color: green"></a-entity>`
+    `<a-entity class="instrument" id="lead-node" position="1.5 1.5 -3" geometry="primitive: tetrahedron" material="color: yellow"></a-entity>`
+  `</a-scene>`
+
+* Scripting Fade Logic:
+  Use raycaster events to trigger volume changes:
+  `let gainNode = audioContext.createGain();`
+  
+  `el.addEventListener('raycaster-intersected', () => {`
+    `// Ramp volume up to 1.0 over 0.3 seconds`
+    `gainNode.gain.linearRampToValueAtTime(1.0, audioContext.currentTime + 0.3);`
+  `});`
+  `el.addEventListener('raycaster-intersected-cleared', () => {`
+    `// Ramp volume down to 0.1 over 0.6 seconds`
+    `gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.6);`
+  `});`

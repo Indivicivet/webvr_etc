@@ -1,0 +1,83 @@
+================================================================================
+GAME DESIGN SKETCH: CHROMATIC GAZE MATCHER (0004)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+A cozy, casual color-matching puzzle game. The player faces a floating cluster of 
+colored cubes surrounding a central "target sphere". The target sphere pulses with 
+a specific color (e.g., neon purple). The player must gaze at the matching purple 
+cubes to clear them from the field before the time runs out.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: 100% Gaze-Only. A gaze fuse cursor (400ms hover duration) acts as the 
+  action trigger.
+* Field of View (FoV): Optimized for 60-degree FoV. The entire puzzle board fits 
+  within a compact circular cluster spanning 30 degrees, minimizing head movements.
+* Comfort: Completely stationary. Gentle ambient float animations on the shapes 
+  provide visual texture without causing discomfort.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Background: A dark, soft gradient background with floaty dust particles to provide 
+  depth and scale.
+* Target Sphere: A large, glowing glass sphere in the center of the viewport that 
+  slowly breathes light in the target color.
+* Puzzle Grid: 8 smaller cubes orbiting the target sphere, colored randomly in 
+  shades of cyan, purple, magenta, and yellow.
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Start Screen: Gaze at the glowing "BEGIN" ring above the target sphere.
+2. Wave Start: The target sphere turns a specific color (e.g., Cyan). The 8 orbital 
+   cubes are assigned random colors (3 cyan, 5 others).
+3. Player Action: Player looks at a Cyan cube. The fuse cursor fills up.
+4. Correct Match: If the player successfully fuses a matching cube:
+   - Cube scales down to zero with a satisfying chime sound.
+   - Cleared cube is removed from the active count.
+5. Incorrect Match: If the player gazes at a non-matching cube:
+   - Play a soft buzzer sound.
+   - The cube shakes and locks out for 1 second.
+   - Score multiplier is reset.
+6. Wave Complete: Once all matching cubes are cleared, the remaining cubes shuffle, 
+   and a new target color is set.
+7. Timer: The player has 20 seconds per wave. Clearing a matching cube adds 2 seconds.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Scene Layout:
+  `<a-scene>`
+    `<a-camera>`
+      `<a-cursor fuse="true" fuse-timeout="400" material="color: white; shader: flat"></a-cursor>`
+    `</a-camera>`
+    
+    `<!-- Central Target -->`
+    `<a-sphere id="target-sphere" position="0 1 -2" radius="0.3" material="color: magenta; emissive: magenta; emissiveIntensity: 0.5"></a-sphere>`
+    
+    `<!-- Orbital Cubes (arranged in a circle around target) -->`
+    `<a-entity id="puzzle-group" position="0 1 -2">`
+      `<a-box class="color-cube" position="0.8 0 0" ...></a-box>`
+      `<a-box class="color-cube" position="0.56 0.56 0" ...></a-box>`
+      `<!-- Repeat for other 6 coordinates -->`
+    `</a-entity>`
+  `</a-scene>`
+
+* Scripting State:
+  - Colors array: `['#00ffff', '#ff00ff', '#ffff00', '#ff007f']` (Cyan, Magenta, Yellow, Pink).
+  - Target Color: randomly selected from the array.
+  - On each wave, assign colors to elements:
+    `let cubes = document.querySelectorAll('.color-cube');`
+    `cubes.forEach(cube => {`
+       `let randomColor = colors[Math.floor(Math.random() * colors.length)];`
+       `cube.setAttribute('material', 'color', randomColor);`
+    `});`
+  - Gaze Handler:
+    `cube.addEventListener('click', (e) => {`
+       `let cubeColor = cube.getAttribute('material').color;`
+       `if (cubeColor === currentTargetColor) {`
+          `// Match! Animate and remove`
+       `} else {`
+          `// Shake animation`
+       `}`
+    `});`

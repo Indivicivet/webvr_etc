@@ -1,0 +1,83 @@
+================================================================================
+GAME DESIGN SKETCH: GAZE TURRET DEFENDER (0003)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+You are an orbital defense operator in a stationary space turret. Space debris 
+and meteors are falling towards your station. You must target and melt them with 
+your plasma cannon by simply looking at them.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: Gaze lock-on auto-fire. No buttons or controllers needed. When the 
+  camera reticle overlaps with a target, the raycaster component registers the 
+  intersection, instantly activating the laser weapon beams and dealing damage 
+  over time.
+* Field of View (FoV): Crucially limited to an 80-degree front cone. Debris only 
+  spawns in this forward volume, so the player never has to crane their neck to 
+  look behind or straight down/up.
+* Comfort: Completely stationary. Debris moves at a slow-to-moderate velocity, 
+  and the distant starfield remains static, keeping the experience highly comfortable.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Cockpit Frame: A dark metal frame surrounds the edges of the camera view to ground 
+  the player.
+* Debris: Low-poly asteroids and glowing metal space junk (old satellites). They 
+  turn bright glowing orange/red as they take laser damage.
+* Laser Cannon Mounts: Left and right gun barrels visible in the lower corners 
+  of the screen.
+* Lasers: Neon green lines drawn from the barrels to the current target position.
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Start Screen: Look at the console screen displaying "ONLINE" to boot the system.
+2. Threat Wave: Asteroids spawn at Z = -35 at random X/Y coordinates in front of 
+   the player and glide forward.
+3. Locking On: Player aligns the camera reticle onto an asteroid.
+4. Firing: The raycaster detects the hit:
+   - Green laser beams are drawn from the gun barrels to the asteroid.
+   - The asteroid begins to crack and glow.
+   - If held for 0.8 seconds, the asteroid explodes into particles (gains points).
+5. Shield Impact: Any asteroid that crosses Z = -1 hits the shield:
+   - Screen flashes blue/red.
+   - Shield health decays by 25%.
+6. Game Over: Shield reaches 0%.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Raycaster Camera:
+  `<a-camera id="cam">`
+    `<a-entity raycaster="objects: .debris" cursor="fuse: false" position="0 0 -1"`
+              `geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.015"`
+              `material="color: lime; shader: flat"></a-entity>`
+  `</a-camera>`
+
+* Lasers (Dynamic Lines):
+  Use A-Frame's line component to draw lasers dynamically. Write a custom component 
+  for the gun barrels that updates the line endpoints when a target is hit:
+  `AFRAME.registerComponent('turret-laser', {`
+    `tick: function() {`
+      `let target = getActiveIntersection();`
+      `if (target) {`
+        `this.el.setAttribute('line', {`
+          `start: this.el.getAttribute('position'),`
+          `end: target.position,`
+          `color: 'lime',`
+          `visible: true`
+        `});`
+      `} else {`
+        `this.el.setAttribute('line', { visible: false });`
+      `}`
+    `}`
+  `});`
+
+* Damage Component:
+  Give each debris entity a `health` attribute. When the raycaster intersects:
+  `debrisEl.addEventListener('raycaster-intersected', () => {`
+    `// Start draining health per tick`
+  `});`
+  `debrisEl.addEventListener('raycaster-intersected-cleared', () => {`
+    `// Stop draining health`
+  `});`
