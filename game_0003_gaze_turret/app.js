@@ -616,13 +616,13 @@ AFRAME.registerComponent('gaze-turret', {
             const intersection = raycaster.intersections[0];
             const hitEl = intersection.object.el;
             
-            // Climb DOM to find parent debris element
+            // Climb DOM to find parent debris element with component attribute
             let parentDebris = hitEl;
-            while (parentDebris && !parentDebris.classList.contains('debris') && parentDebris.tagName !== 'A-SCENE') {
+            while (parentDebris && !parentDebris.hasAttribute('debris-item') && parentDebris.tagName !== 'A-SCENE') {
                 parentDebris = parentDebris.parentNode;
             }
             
-            if (parentDebris && parentDebris.classList.contains('debris')) {
+            if (parentDebris && parentDebris.hasAttribute('debris-item')) {
                 activeTarget = parentDebris;
                 intersectPoint = intersection.point;
             } else if (hitEl && hitEl.classList.contains('vr-target')) {
@@ -633,7 +633,7 @@ AFRAME.registerComponent('gaze-turret', {
         
         // Handle Action based on activeTarget
         if (activeTarget) {
-            if (activeTarget.classList.contains('debris') && this.state === 'PLAYING') {
+            if (activeTarget.hasAttribute('debris-item') && this.state === 'PLAYING') {
                 // Zap target
                 activeTarget.components['debris-item'].isBeingHit = true;
                 
@@ -838,6 +838,7 @@ AFRAME.registerComponent('gaze-turret', {
             health = 1.0;
             
             const rock = document.createElement('a-dodecahedron');
+            rock.classList.add('target');
             rock.setAttribute('radius', 0.8 + Math.random() * 0.4);
             rock.setAttribute('color', '#5a5563');
             rock.setAttribute('material', 'roughness: 0.75; metalness: 0.25');
@@ -856,6 +857,7 @@ AFRAME.registerComponent('gaze-turret', {
             
             // Satellite Chassis
             const core = document.createElement('a-cylinder');
+            core.classList.add('target');
             core.setAttribute('radius', 0.32);
             core.setAttribute('height', 0.95);
             core.setAttribute('color', '#acb5c3');
@@ -865,6 +867,7 @@ AFRAME.registerComponent('gaze-turret', {
             
             // Panels left
             const panelL = document.createElement('a-box');
+            panelL.classList.add('target');
             panelL.setAttribute('width', 1.4);
             panelL.setAttribute('height', 0.35);
             panelL.setAttribute('depth', 0.04);
@@ -875,6 +878,7 @@ AFRAME.registerComponent('gaze-turret', {
             
             // Panels right
             const panelR = document.createElement('a-box');
+            panelR.classList.add('target');
             panelR.setAttribute('width', 1.4);
             panelR.setAttribute('height', 0.35);
             panelR.setAttribute('depth', 0.04);
@@ -885,6 +889,7 @@ AFRAME.registerComponent('gaze-turret', {
             
             // Antenna dish
             const dish = document.createElement('a-cone');
+            dish.classList.add('target');
             dish.setAttribute('radius-bottom', 0.28);
             dish.setAttribute('radius-top', 0);
             dish.setAttribute('height', 0.35);
@@ -899,6 +904,7 @@ AFRAME.registerComponent('gaze-turret', {
             speed = 0.095 + Math.random() * 0.055;
             
             const shard = document.createElement('a-cone');
+            shard.classList.add('target');
             shard.setAttribute('radius-bottom', 0.28);
             shard.setAttribute('height', 0.65);
             shard.setAttribute('color', '#ff5d00');

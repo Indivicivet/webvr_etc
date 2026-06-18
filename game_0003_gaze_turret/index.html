@@ -140,7 +140,7 @@
                     <!-- 3D Holographic Screen UI -->
                     <a-plane position="0 0 0.045" width="0.9" height="0.32" color="#0a0715" material="roughness: 1.0">
                         <!-- 3D Start/Restart Button (Gaze selected in VR) -->
-                        <a-box id="vr-btn-online" class="vr-target" position="0 0 0.02" width="0.6" height="0.18" depth="0.03" color="#39ff14"
+                        <a-box id="vr-btn-online" class="vr-target target" position="0 0 0.02" width="0.6" height="0.18" depth="0.03" color="#39ff14"
                                material="emissive: #39ff14; emissiveIntensity: 0.6; roughness: 0.4; metalness: 0.8"
                                animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
                                animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
@@ -180,7 +180,7 @@
                               fuse="false" 
                               geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.023" 
                               material="color: #39ff14; shader: flat; opacity: 0.9" 
-                              raycaster="objects: .debris, .vr-target"
+                              raycaster="objects: .target"
                               position="0 0 -1"
                               animation__fusing="property: scale; startEvents: fusing; dur: 800; from: 1 1 1; to: 0.2 0.2 0.2"
                               animation__click="property: scale; startEvents: click; dur: 150; from: 0.2 0.2 0.2; to: 1 1 1"
