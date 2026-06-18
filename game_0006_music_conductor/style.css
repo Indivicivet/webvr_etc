@@ -1,0 +1,512 @@
+/* --- Gaze Audio Conductor (0006) CSS Styling --- */
+
+:root {
+    --bg-dark: #06040a;
+    --bg-gradient: radial-gradient(circle at 50% 50%, #0f0822 0%, #050308 100%);
+    
+    /* Neon Theme Colors */
+    --neon-drums: #ff0055;     /* Neon Pink */
+    --neon-drums-glow: rgba(255, 0, 85, 0.4);
+    
+    --neon-bass: #00f0ff;      /* Neon Cyan */
+    --neon-bass-glow: rgba(0, 240, 255, 0.4);
+    
+    --neon-synth: #a300ff;     /* Neon Purple */
+    --neon-synth-glow: rgba(163, 0, 255, 0.4);
+    
+    --neon-lead: #ffbb00;      /* Neon Gold */
+    --neon-lead-glow: rgba(255, 187, 0, 0.4);
+
+    --neon-success: #39ff14;   /* Neon Green */
+    --neon-success-glow: rgba(57, 255, 20, 0.4);
+    
+    --text-primary: #f2eeff;
+    --text-secondary: #a39cb8;
+    --glass-bg: rgba(255, 255, 255, 0.02);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-glow: rgba(163, 0, 255, 0.06);
+    
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset & Base Setup */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 3D Viewport wrapper */
+#scene-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Overlay UI Container */
+.ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* Mouse interactions go through to A-Frame unless specified */
+}
+
+/* Common Panels */
+.overlay-panel {
+    pointer-events: auto;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 40px;
+    max-width: 580px;
+    width: 90%;
+    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.85), 
+                inset 0 0 35px var(--glass-glow);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 24px;
+    transition: var(--transition-smooth);
+    animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.overlay-panel.hidden {
+    opacity: 0;
+    transform: scale(0.9) translateY(25px);
+    pointer-events: none;
+    display: none !important;
+}
+
+/* Header Elements */
+.logo-badge {
+    background: linear-gradient(135deg, var(--neon-synth), var(--neon-drums));
+    padding: 6px 20px;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    box-shadow: 0 0 25px var(--neon-drums-glow);
+    animation: neonPulse 2.5s infinite alternate;
+}
+
+h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 40%, #cdaeff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(163, 0, 255, 0.15);
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Guides for the panel */
+.guide-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+}
+
+.guide-item {
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.guide-color-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.indicator-drums {
+    background: var(--neon-drums);
+    box-shadow: 0 0 12px var(--neon-drums-glow);
+}
+.indicator-bass {
+    background: var(--neon-bass);
+    box-shadow: 0 0 12px var(--neon-bass-glow);
+}
+.indicator-synth {
+    background: var(--neon-synth);
+    box-shadow: 0 0 12px var(--neon-synth-glow);
+}
+.indicator-lead {
+    background: var(--neon-lead);
+    box-shadow: 0 0 12px var(--neon-lead-glow);
+}
+
+.guide-item-text h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.guide-item-text p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Buttons */
+.btn {
+    pointer-events: auto;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ffffff;
+    border: none;
+    border-radius: 100px;
+    padding: 16px 36px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.btn-pink {
+    background: linear-gradient(135deg, var(--neon-drums) 0%, var(--neon-synth) 100%);
+    box-shadow: 0 5px 25px var(--neon-drums-glow);
+}
+.btn-pink:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 35px rgba(255, 0, 85, 0.6);
+}
+
+.btn-cyan {
+    background: linear-gradient(135deg, var(--neon-bass) 0%, var(--neon-synth) 100%);
+    box-shadow: 0 5px 25px var(--neon-bass-glow);
+}
+.btn-cyan:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 35px rgba(0, 240, 255, 0.6);
+}
+
+/* Status message */
+.status-msg {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+/* Active HUD Container (In-Game) */
+.hud-container {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    right: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 5;
+    transition: var(--transition-smooth);
+}
+
+.hud-container.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* HUD Panels */
+.hud-panel {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 12px 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
+                inset 0 0 15px var(--glass-glow);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hud-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    max-width: 320px;
+    width: 100%;
+}
+
+.hud-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.hud-value {
+    font-family: monospace;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+/* Timer styles */
+.timer-pulse {
+    color: var(--neon-drums);
+    text-shadow: 0 0 10px var(--neon-drums-glow);
+    animation: beatPulse 1s infinite;
+}
+
+/* Target Recipe HUD Card */
+.recipe-card {
+    background: rgba(15, 8, 34, 0.45);
+    border: 1px solid rgba(163, 0, 255, 0.25);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6),
+                0 0 15px rgba(163, 0, 255, 0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 16px 24px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.recipe-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: var(--neon-synth);
+    text-transform: uppercase;
+}
+
+.recipe-stems {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, #ffffff, var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Meter / Progress Bars */
+.meter-container {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 100px;
+    height: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--neon-synth), var(--neon-success));
+    box-shadow: 0 0 10px var(--neon-success-glow);
+    transition: width 0.15s ease-out;
+}
+
+/* Target indicators on UI */
+.target-list {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.target-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.3;
+    border: 1px solid transparent;
+    transition: var(--transition-smooth);
+}
+
+.target-badge.active {
+    opacity: 1.0;
+}
+
+.badge-drums {
+    color: var(--neon-drums);
+    border-color: var(--neon-drums);
+    background: rgba(255, 0, 85, 0.1);
+    box-shadow: 0 0 8px rgba(255, 0, 85, 0.2);
+}
+.badge-bass {
+    color: var(--neon-bass);
+    border-color: var(--neon-bass);
+    background: rgba(0, 240, 255, 0.1);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+}
+.badge-synth {
+    color: var(--neon-synth);
+    border-color: var(--neon-synth);
+    background: rgba(163, 0, 255, 0.1);
+    box-shadow: 0 0 8px rgba(163, 0, 255, 0.2);
+}
+.badge-lead {
+    color: var(--neon-lead);
+    border-color: var(--neon-lead);
+    background: rgba(255, 187, 0, 0.1);
+    box-shadow: 0 0 8px rgba(255, 187, 0, 0.2);
+}
+
+/* Stats list inside game over */
+.stats-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 16px 20px;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stats-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.stats-value {
+    font-family: monospace;
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.stats-new-record {
+    background: linear-gradient(90deg, #ff0055, #ffbb00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+}
+
+/* Mode toggle button */
+.mode-toggle-btn {
+    pointer-events: auto;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: var(--transition-smooth);
+    margin-top: 10px;
+}
+.mode-toggle-btn:hover {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Instructions on landing */
+.controls-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Keyframe Animations */
+@keyframes neonPulse {
+    0% {
+        box-shadow: 0 0 15px var(--neon-drums-glow);
+    }
+    100% {
+        box-shadow: 0 0 30px var(--neon-synth-glow);
+    }
+}
+
+@keyframes beatPulse {
+    0% {
+        transform: scale(1.0);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+    100% {
+        transform: scale(1.0);
+    }
+}
+
+@keyframes zoomIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1.0);
+    }
+}
+
+/* Responsive tweaks */
+@media (max-width: 480px) {
+    .hud-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .hud-center {
+        order: -1;
+    }
+    
+    h1 {
+        font-size: 2.0rem;
+    }
+    
+    .overlay-panel {
+        padding: 24px;
+    }
+}

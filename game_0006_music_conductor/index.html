@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gaze Audio Conductor - VR Music Studio</title>
+    <meta name="description" content="An immersive WebVR audio experience. Mix synchronized electronic tracks and play rhythm puzzles by gazing at neon reactive nodes. Hostable on GitHub Pages.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library (Stable WebXR support) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D Overlay UI Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Screen -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">VR Audio</div>
+            <h1>Gaze Conductor</h1>
+            <p class="subtitle">Step into a neon soundstage. You are a musical conductor. By looking at the floating nodes, you unmute and filter individual tracks to mix the music in real-time.</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-drums"></div>
+                    <div class="guide-item-text">
+                        <h3>Drums Node (Pink Octahedron)</h3>
+                        <p>Drives the beat. Always plays at 10% volume initially.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-bass"></div>
+                    <div class="guide-item-text">
+                        <h3>Bass Node (Cyan Torus)</h3>
+                        <p>Adds depth and low-end grooves.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-synth"></div>
+                    <div class="guide-item-text">
+                        <h3>Synth Node (Purple Matrix)</h3>
+                        <p>Brings in retro cyber chord progressions.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-lead"></div>
+                    <div class="guide-item-text">
+                        <h3>Lead Node (Gold Diamond)</h3>
+                        <p>Sings with high-pitched electronic melodies.</p>
+                    </div>
+                </div>
+            </div>
+
+            <p class="controls-desc"><strong>Controls:</strong> 100% Gaze-controlled. Hover your cursor reticle over any node to fade it in and open its filter. Look away to fade it down.</p>
+
+            <div style="display: flex; gap: 16px; width: 100%; justify-content: center;">
+                <button id="btn-start-challenge" class="btn btn-pink">Start Challenge</button>
+                <button id="btn-start-jam" class="btn btn-cyan">Free Jam Mode</button>
+            </div>
+            
+            <div id="vr-status-msg" class="status-msg">Initialising Audio Engine...</div>
+        </div>
+
+        <!-- Game Over / Challenge Summary Screen -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-drums), var(--neon-lead)); box-shadow: 0 0 20px var(--neon-lead-glow);">Session Ended</div>
+            <h1>Performance Summary</h1>
+            <p class="subtitle">Your musical arrangement has completed.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Recipes Completed:</span>
+                    <span id="stat-recipes-count" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Personal Best:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🎉 NEW PERSONAL RECORD! 🎉</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-pink">Conduct Again</button>
+        </div>
+    </div>
+
+    <!-- Active HUD (Only visible in-game) -->
+    <div id="hud" class="hud-container hidden">
+        <!-- Left Panel: Score and Multiplier -->
+        <div class="hud-panel" style="min-width: 120px;">
+            <span class="hud-label">Score</span>
+            <span id="hud-score-val" class="hud-value">0000</span>
+            <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                <span class="hud-label" style="font-size: 0.55rem;">Combo</span>
+                <span id="hud-combo-val" style="font-family: monospace; font-size: 0.9rem; font-weight: 800; color: var(--neon-lead);">x1</span>
+            </div>
+        </div>
+
+        <!-- Center Panel: Target Mix Recipe & Harmony Progress Bar -->
+        <div class="hud-center">
+            <div id="recipe-card" class="recipe-card">
+                <span id="recipe-mode-label" class="recipe-title">Active Target</span>
+                <span id="recipe-stems" class="recipe-stems">DRUMS + BASS</span>
+                
+                <div class="target-list" id="recipe-badges">
+                    <span class="target-badge badge-drums" id="badge-drums">DRU</span>
+                    <span class="target-badge badge-bass" id="badge-bass">BAS</span>
+                    <span class="target-badge badge-synth" id="badge-synth">SYN</span>
+                    <span class="target-badge badge-lead" id="badge-lead">LEA</span>
+                </div>
+                
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 4px; margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="hud-label" style="font-size: 0.55rem;" id="meter-label">Harmony Match</span>
+                        <span id="harmony-percent" style="font-family: monospace; font-size: 0.75rem; font-weight: 800; color: var(--neon-success);">0%</span>
+                    </div>
+                    <div class="meter-container">
+                        <div id="harmony-fill" class="meter-fill"></div>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-hud-exit" class="mode-toggle-btn">Exit to Main Menu</button>
+        </div>
+
+        <!-- Right Panel: Timer -->
+        <div class="hud-panel" style="min-width: 120px; align-items: flex-end;">
+            <span class="hud-label">Time Remaining</span>
+            <span id="hud-timer-val" class="hud-value timer-pulse">0:45</span>
+        </div>
+    </div>
+
+    <!-- Immersive A-Frame Scene Container -->
+    <div id="scene-container">
+        <!-- We set vr-mode-ui="enabled: true" to show the VR button at bottom right -->
+        <a-scene embedded vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true; sortObjects: true;">
+            <a-assets>
+                <!-- We can define standard mixins for colors or animations if needed -->
+            </a-assets>
+
+            <!-- 1. Player / Camera Rig -->
+            <a-entity id="rig" position="0 0 0">
+                <a-camera id="camera" look-controls wasd-controls-enabled="false" position="0 1.6 0">
+                    <!-- Reticle Cursor for gaze input -->
+                    <!-- raycaster is optimized to check only objects with class "instrument" -->
+                    <a-cursor id="reticle"
+                        raycaster="objects: .instrument; interval: 100;"
+                        fuse="false"
+                        position="0 0 -1"
+                        geometry="primitive: ring; radiusInner: 0.018; radiusOuter: 0.028"
+                        material="color: #ffffff; shader: flat; opacity: 0.7; transparent: true"
+                        animation__mouseenter="property: scale; to: 1.4 1.4 1.4; dur: 150; easing: easeOutQuad"
+                        animation__mouseleave="property: scale; to: 1 1 1; dur: 150; easing: easeOutQuad">
+                    </a-cursor>
+                    <!-- Small laser pointer to help line up gaze -->
+                    <a-entity id="laser"
+                        geometry="primitive: cylinder; radius: 0.002; height: 3"
+                        material="color: #cdaeff; shader: flat; opacity: 0.15; transparent: true"
+                        position="0 0 -1.5"
+                        rotation="90 0 0">
+                    </a-entity>
+                </a-camera>
+            </a-entity>
+
+            <!-- 2. Ambient & Spotlight Stage Lighting -->
+            <a-entity light="type: ambient; color: #181533; intensity: 0.3;"></a-entity>
+            
+            <!-- High directional light representing background concert wash -->
+            <a-entity light="type: directional; color: #5345a3; intensity: 0.6; castShadow: false;" position="0 8 -4"></a-entity>
+
+            <!-- 3. Neon Spotlights that sweep left/right (animated by parent rotation in app.js) -->
+            <a-entity id="spotlight-left" position="-5 6 -6" rotation="40 30 0">
+                <a-entity geometry="primitive: cone; radiusBottom: 1.8; radiusTop: 0.02; height: 12"
+                          material="color: #ff0055; shader: flat; transparent: true; opacity: 0.12; side: double"
+                          rotation="90 0 0">
+                </a-entity>
+                <a-entity light="type: spot; color: #ff0055; intensity: 1.5; angle: 25; penumbra: 0.5" rotation="0 0 0"></a-entity>
+            </a-entity>
+
+            <a-entity id="spotlight-right" position="5 6 -6" rotation="40 -30 0">
+                <a-entity geometry="primitive: cone; radiusBottom: 1.8; radiusTop: 0.02; height: 12"
+                          material="color: #00f0ff; shader: flat; transparent: true; opacity: 0.12; side: double"
+                          rotation="90 0 0">
+                </a-entity>
+                <a-entity light="type: spot; color: #00f0ff; intensity: 1.5; angle: 25; penumbra: 0.5" rotation="0 0 0"></a-entity>
+            </a-entity>
+
+            <!-- 3. Stage Floor & Neon Cyber Grid (Created dynamically in app.js on the canvas floor texture) -->
+            <a-plane id="grid-floor"
+                     position="0 0.01 0"
+                     rotation="-90 0 0"
+                     width="40"
+                     height="40"
+                     material="roughness: 0.9; metalness: 0.1; transparent: true; opacity: 0.95;">
+            </a-plane>
+            
+            <a-plane id="sub-floor"
+                     position="0 0 0"
+                     rotation="-90 0 0"
+                     width="80"
+                     height="80"
+                     material="color: #050308; roughness: 1.0; metalness: 0.0;">
+            </a-plane>
+
+            <!-- 4. Interactive Music Instrument Nodes (spaced in a horizontal arc) -->
+            
+            <!-- DRUMS NODE (Pink Octahedron) -->
+            <a-entity id="node-drums" class="instrument" position="-1.36 1.5 -2.67">
+                <!-- Outer Node shape -->
+                <a-entity id="node-drums-mesh" 
+                          geometry="primitive: octahedron"
+                          material="color: #ff0055; emissive: #ff0055; emissiveIntensity: 0.25; roughness: 0.15; metalness: 0.7"
+                          scale="0.32 0.32 0.32">
+                </a-entity>
+                <!-- Label above node -->
+                <a-text value="DRUMS" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#ff0055" font="monoid" shader="flat"></a-text>
+                <!-- Glow ring indicator on the floor directly below -->
+                <a-ring id="ring-drums" 
+                        radius-inner="0.38" 
+                        radius-outer="0.42" 
+                        rotation="-90 0 0" 
+                        position="0 -1.49 0" 
+                        material="color: #ff0055; shader: flat; transparent: true; opacity: 0.2">
+                </a-ring>
+            </a-entity>
+
+            <!-- BASS NODE (Cyan Torus) -->
+            <a-entity id="node-bass" class="instrument" position="-0.47 1.4 -2.96">
+                <a-entity id="node-bass-mesh" 
+                          geometry="primitive: torus; radius: 0.28; radiusTubular: 0.04"
+                          material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.25; roughness: 0.15; metalness: 0.7"
+                          rotation="90 0 0"
+                          scale="1 1 1">
+                </a-entity>
+                <a-text value="BASS" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#00f0ff" font="monoid" shader="flat"></a-text>
+                <a-ring id="ring-bass" 
+                        radius-inner="0.38" 
+                        radius-outer="0.42" 
+                        rotation="-90 0 0" 
+                        position="0 -1.39 0" 
+                        material="color: #00f0ff; shader: flat; transparent: true; opacity: 0.2">
+                </a-ring>
+            </a-entity>
+
+            <!-- SYNTH NODE (Purple Wireframe Box + Floating Core Points) -->
+            <a-entity id="node-synth" class="instrument" position="0.47 1.4 -2.96">
+                <!-- Inner Core Sphere -->
+                <a-entity id="node-synth-core"
+                          geometry="primitive: sphere; radius: 0.15"
+                          material="color: #a300ff; emissive: #a300ff; emissiveIntensity: 0.35; roughness: 0.2; metalness: 0.5">
+                </a-entity>
+                <!-- Outer wireframe box -->
+                <a-entity id="node-synth-mesh" 
+                          geometry="primitive: box; width: 0.4; height: 0.4; depth: 0.4"
+                          material="color: #a300ff; emissive: #a300ff; emissiveIntensity: 0.1; wireframe: true"
+                          scale="1 1 1">
+                </a-entity>
+                <a-text value="SYNTH" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#a300ff" font="monoid" shader="flat"></a-text>
+                <a-ring id="ring-synth" 
+                        radius-inner="0.38" 
+                        radius-outer="0.42" 
+                        rotation="-90 0 0" 
+                        position="0 -1.39 0" 
+                        material="color: #a300ff; shader: flat; transparent: true; opacity: 0.2">
+                </a-ring>
+            </a-entity>
+
+            <!-- LEAD NODE (Gold Diamond) -->
+            <a-entity id="node-lead" class="instrument" position="1.36 1.5 -2.67">
+                <a-entity id="node-lead-mesh" 
+                          geometry="primitive: octahedron"
+                          material="color: #ffbb00; emissive: #ffbb00; emissiveIntensity: 0.25; roughness: 0.1; metalness: 0.8"
+                          scale="0.25 0.55 0.25">
+                </a-entity>
+                <a-text value="LEAD" align="center" position="0 0.52 0" scale="0.45 0.45 0.45" color="#ffbb00" font="monoid" shader="flat"></a-text>
+                <a-ring id="ring-lead" 
+                        radius-inner="0.38" 
+                        radius-outer="0.42" 
+                        rotation="-90 0 0" 
+                        position="0 -1.49 0" 
+                        material="color: #ffbb00; shader: flat; transparent: true; opacity: 0.2">
+                </a-ring>
+            </a-entity>
+
+            <!-- 5. Floating Star / Cyberdust Particles (animated in app.js) -->
+            <a-entity id="dust-container"></a-entity>
+            
+        </a-scene>
+    </div>
+
+    <!-- Core Game Logic Script -->
+    <script src="./app.js"></script>
+</body>
+</html>
