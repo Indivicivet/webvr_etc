@@ -270,9 +270,9 @@ const game = {
     active: false,
     timerInterval: null,
     
-    // Bubble Spawner configurations
-    baseSpawnInterval: 1200, // starting rate in ms
-    minSpawnInterval: 650,   // maximum pace floor
+    // Bubble Spawner configurations (slightly faster spawning for denser streams)
+    baseSpawnInterval: 900,  // starting rate in ms
+    minSpawnInterval: 450,   // maximum pace floor
     spawnTimer: 0,           // cooldown count
     
     // Collection vectors
@@ -533,6 +533,91 @@ class Particle {
 }
 
 // ==========================================
+// 4.5. VR CONTROLLERS & LOCOMOTION
+// ==========================================
+AFRAME.registerComponent('vr-movement-controls', {
+    schema: {
+        rig: {type: 'selector', default: '#rig'},
+        speed: {type: 'number', default: 2.0}
+    },
+    
+    init: function () {
+        this.isMoving = false;
+        this.moveDirection = new THREE.Vector3();
+        
+        // Listen to grip press/release on this controller
+        this.el.addEventListener('gripdown', () => {
+            this.isMoving = true;
+        });
+        this.el.addEventListener('gripup', () => {
+            this.isMoving = false;
+        });
+        
+        // Listen to thumbstick/trackpad axis changes
+        this.thumbstickX = 0;
+        this.thumbstickY = 0;
+        this.el.addEventListener('axismove', (evt) => {
+            const axis = evt.detail.axis;
+            if (axis.length >= 4) {
+                this.thumbstickX = axis[2];
+                this.thumbstickY = axis[3];
+            } else if (axis.length >= 2) {
+                this.thumbstickX = axis[0];
+                this.thumbstickY = axis[1];
+            }
+        });
+    },
+    
+    tick: function (time, delta) {
+        if (!delta) return;
+        const deltaSeconds = delta / 1000;
+        const rig = this.data.rig;
+        if (!rig) return;
+        
+        const position = rig.getAttribute('position');
+        let dx = 0;
+        let dz = 0;
+        
+        // 1. Grip-based pointing steering
+        if (this.isMoving) {
+            this.moveDirection.set(0, 0, -1);
+            this.moveDirection.applyQuaternion(this.el.object3D.quaternion);
+            this.moveDirection.y = 0; // lock to horizontal plane
+            this.moveDirection.normalize();
+            
+            dx += this.moveDirection.x * this.data.speed * deltaSeconds;
+            dz += this.moveDirection.z * this.data.speed * deltaSeconds;
+        }
+        
+        // 2. Thumbstick-based movement (camera relative)
+        if (Math.abs(this.thumbstickX) > 0.05 || Math.abs(this.thumbstickY) > 0.05) {
+            const camera = document.getElementById('camera');
+            if (camera) {
+                const rotation = camera.getAttribute('rotation');
+                const angle = (rotation.y * Math.PI) / 180;
+                
+                const forwardX = -Math.sin(angle) * -this.thumbstickY;
+                const forwardZ = -Math.cos(angle) * -this.thumbstickY;
+                
+                const rightX = Math.cos(angle) * this.thumbstickX;
+                const rightZ = -Math.sin(angle) * this.thumbstickX;
+                
+                dx += (forwardX + rightX) * this.data.speed * deltaSeconds;
+                dz += (forwardZ + rightZ) * this.data.speed * deltaSeconds;
+            }
+        }
+        
+        if (dx !== 0 || dz !== 0) {
+            rig.setAttribute('position', {
+                x: position.x + dx,
+                y: position.y,
+                z: position.z + dz
+            });
+        }
+    }
+});
+
+// ==========================================
 // 5. GAME CONTROLLER ACTIONS
 // ==========================================
 
@@ -551,6 +636,37 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Audio context activation on first touch
     document.body.addEventListener('pointerdown', () => audio.resume());
+
+    // VR controller connection listeners to toggle camera gaze cursor
+    const cursor = document.getElementById('cursor');
+    const leftHand = document.getElementById('left-hand');
+    const rightHand = document.getElementById('right-hand');
+    let controllersConnected = 0;
+    
+    function onControllerConnected() {
+        controllersConnected++;
+        if (controllersConnected > 0 && cursor) {
+            cursor.setAttribute('visible', 'false');
+            cursor.setAttribute('raycaster', 'showLine: false; far: 0');
+        }
+    }
+    
+    function onControllerDisconnected() {
+        controllersConnected = Math.max(0, controllersConnected - 1);
+        if (controllersConnected === 0 && cursor) {
+            cursor.setAttribute('visible', 'true');
+            cursor.setAttribute('raycaster', 'objects: .bubble, .vr-btn; far: 1000; showLine: true');
+        }
+    }
+    
+    if (leftHand) {
+        leftHand.addEventListener('controllerconnected', onControllerConnected);
+        leftHand.addEventListener('controllerdisconnected', onControllerDisconnected);
+    }
+    if (rightHand) {
+        rightHand.addEventListener('controllerconnected', onControllerConnected);
+        rightHand.addEventListener('controllerdisconnected', onControllerDisconnected);
+    }
 });
 
 // Pad scores
@@ -780,11 +896,19 @@ function update(time) {
 // Kick off frame loop
 requestAnimationFrame(update);
 
-// Instantiates a bubble at random positions over the pond
+// Instantiates a bubble at random positions over the pond or scattered in the garden
 function spawnBubble() {
-    // Spawns over the pond: x centering around 0, z centering around -4
-    const xOffset = -0.55 + Math.random() * 1.1;
-    const zOffset = -4.3 + Math.random() * 0.6;
+    // Spawns over the pond or scattered around the garden (closer and further away)
+    let xOffset, zOffset;
+    if (Math.random() < 0.45) {
+        // Pond area (concentrated source)
+        xOffset = -0.55 + Math.random() * 1.1;
+        zOffset = -4.3 + Math.random() * 0.6;
+    } else {
+        // Scattered garden area (closer and further away)
+        xOffset = -4.0 + Math.random() * 8.0;
+        zOffset = -1.5 - Math.random() * 7.5; // -1.5 to -9.0
+    }
     
     // Core distribution: Standard (80%), Golden (10%), Star (10%)
     const roll = Math.random();
