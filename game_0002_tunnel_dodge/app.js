@@ -398,6 +398,36 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 8. Device diagnostics to reveal desktop guide
     detectDesktop();
+
+    // 9. Sync VR mode state changes
+    const sceneEl = document.querySelector('a-scene');
+    sceneEl.addEventListener('enter-vr', () => {
+        // If game is not active yet, make sure VR start button is visible
+        if (!game.active) {
+            UI.vrBtnStart.setAttribute('visible', 'true');
+            UI.vrBtnStart.setAttribute('scale', '1 1 1');
+        }
+        // Hide 2D overlay panels as they are invisible in VR but might interfere with clicks or state
+        UI.panelStart.classList.add('hidden');
+        UI.panelGameOver.classList.add('hidden');
+    });
+
+    sceneEl.addEventListener('exit-vr', () => {
+        // Hide VR menu buttons
+        UI.vrBtnStart.setAttribute('visible', 'false');
+        UI.vrBtnStart.setAttribute('scale', '0.001 0.001 0.001');
+        UI.vrBtnRestart.setAttribute('visible', 'false');
+        UI.vrBtnRestart.setAttribute('scale', '0.001 0.001 0.001');
+
+        // Restore 2D panels
+        if (!game.active) {
+            if (game.score === 0 && game.shields === 3) {
+                UI.panelStart.classList.remove('hidden');
+            } else {
+                UI.panelGameOver.classList.remove('hidden');
+            }
+        }
+    });
 });
 
 function detectDesktop() {
