@@ -562,6 +562,32 @@ AFRAME.registerComponent('gaze-turret', {
         this.laserLeft = document.getElementById('laser-left');
         this.laserRight = document.getElementById('laser-right');
         
+        // Bind VR Controllers
+        this.leftHand = document.getElementById('left-hand');
+        this.rightHand = document.getElementById('right-hand');
+        this.gazeCursor = document.getElementById('gaze-cursor');
+        
+        this.leftConnected = false;
+        this.rightConnected = false;
+
+        this.leftHand.addEventListener('controllerconnected', () => {
+            this.leftConnected = true;
+            this.updateCursorVisibility();
+        });
+        this.leftHand.addEventListener('controllerdisconnected', () => {
+            this.leftConnected = false;
+            this.updateCursorVisibility();
+        });
+        
+        this.rightHand.addEventListener('controllerconnected', () => {
+            this.rightConnected = true;
+            this.updateCursorVisibility();
+        });
+        this.rightHand.addEventListener('controllerdisconnected', () => {
+            this.rightConnected = false;
+            this.updateCursorVisibility();
+        });
+
         // Load High Score
         this.highScore = parseInt(localStorage.getItem('gaze_turret_highscore') || '0', 10);
         this.updateHUD();
@@ -570,6 +596,13 @@ AFRAME.registerComponent('gaze-turret', {
         this.btnStart.addEventListener('click', () => this.startGame());
         this.btnRestart.addEventListener('click', () => this.startGame());
         
+        // Handle trigger clicks on cockpit reboot button
+        this.vrBtnOnline.addEventListener('click', () => {
+            if (this.state !== 'PLAYING') {
+                this.startGame();
+            }
+        });
+
         // VR State Listeners
         const sceneEl = this.el;
         sceneEl.addEventListener('enter-vr', () => this.onEnterVR());
@@ -605,29 +638,36 @@ AFRAME.registerComponent('gaze-turret', {
     },
 
     processTargeting: function(time, dt) {
-        const cursorEl = document.getElementById('gaze-cursor');
-        if (!cursorEl) return;
-        
-        const raycaster = cursorEl.components.raycaster;
         let activeTarget = null;
         let intersectPoint = null;
         
-        if (raycaster && raycaster.intersections && raycaster.intersections.length > 0) {
-            const intersection = raycaster.intersections[0];
-            const hitEl = intersection.object.el;
-            
-            // Climb DOM to find parent debris element with component attribute
-            let parentDebris = hitEl;
-            while (parentDebris && !parentDebris.hasAttribute('debris-item') && parentDebris.tagName !== 'A-SCENE') {
-                parentDebris = parentDebris.parentNode;
-            }
-            
-            if (parentDebris && parentDebris.hasAttribute('debris-item')) {
-                activeTarget = parentDebris;
-                intersectPoint = intersection.point;
-            } else if (hitEl && hitEl.classList.contains('vr-target')) {
-                activeTarget = hitEl;
-                intersectPoint = intersection.point;
+        // Prioritize active controllers, fallback to gaze
+        const sources = [];
+        if (this.rightConnected && this.rightHand) sources.push(this.rightHand);
+        if (this.leftConnected && this.leftHand) sources.push(this.leftHand);
+        if (this.gazeCursor) sources.push(this.gazeCursor);
+        
+        for (const src of sources) {
+            const raycaster = src.components.raycaster;
+            if (raycaster && raycaster.intersections && raycaster.intersections.length > 0) {
+                const intersection = raycaster.intersections[0];
+                const hitEl = intersection.object.el;
+                
+                // Climb DOM to find parent debris element with component attribute
+                let parentDebris = hitEl;
+                while (parentDebris && !parentDebris.hasAttribute('debris-item') && parentDebris.tagName !== 'A-SCENE') {
+                    parentDebris = parentDebris.parentNode;
+                }
+                
+                if (parentDebris && parentDebris.hasAttribute('debris-item')) {
+                    activeTarget = parentDebris;
+                    intersectPoint = intersection.point;
+                    break;
+                } else if (hitEl && hitEl.classList.contains('vr-target')) {
+                    activeTarget = hitEl;
+                    intersectPoint = intersection.point;
+                    break;
+                }
             }
         }
         
@@ -942,6 +982,16 @@ AFRAME.registerComponent('gaze-turret', {
         }
     },
 
+    updateCursorVisibility: function() {
+        if (this.leftConnected || this.rightConnected) {
+            this.gazeCursor.setAttribute('visible', false);
+            this.gazeCursor.setAttribute('raycaster', 'enabled', false);
+        } else {
+            this.gazeCursor.setAttribute('visible', true);
+            this.gazeCursor.setAttribute('raycaster', 'enabled', true);
+        }
+    },
+
     onEnterVR: function() {
         this.bezel.classList.add('hidden');
         // Resume AudioContext just in case browser blocked it
@@ -952,6 +1002,9 @@ AFRAME.registerComponent('gaze-turret', {
         if (this.state === 'PLAYING') {
             this.bezel.classList.remove('hidden');
         }
+        this.leftConnected = false;
+        this.rightConnected = false;
+        this.updateCursorVisibility();
     },
 
     checkVRHeadset: function() {

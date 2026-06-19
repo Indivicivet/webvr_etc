@@ -53,14 +53,14 @@
         <div id="panel-start" class="overlay-panel">
             <div class="logo-badge">Orbital Defense</div>
             <h1>Gaze Turret Defender</h1>
-            <p class="subtitle">Meteors and satellite debris are falling towards your station. Man the stationary plasma turret and vaporize threats by looking directly at them.</p>
+            <p class="subtitle">Meteors and satellite debris are falling towards your station. Man the stationary plasma turret and vaporize threats by pointing your VR controller (or looking in desktop mode) directly at them.</p>
             
             <div class="guide-container">
                 <div class="guide-item">
                     <div class="guide-color-indicator guide-green"></div>
                     <div class="guide-item-text">
-                        <h3>Gaze Lock-on</h3>
-                        <p>Hover your reticle over debris. The plasma cannons auto-fire laser beams and deal damage over time.</p>
+                        <h3>Target Lock-on</h3>
+                        <p>Point your VR controller (or hover your reticle in desktop mode) over debris. The plasma cannons auto-fire laser beams and deal damage over time.</p>
                     </div>
                 </div>
                 <div class="guide-item">
@@ -172,21 +172,24 @@
             <!-- Debris Container (Where debris spawn) -->
             <a-entity id="debris-container"></a-entity>
 
-            <!-- Player Rig: Camera + Gaze Cursor -->
+            <!-- Player Rig: Camera + Gaze Cursor + VR Controllers -->
             <a-entity id="rig" position="0 0 0">
                 <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
                     <!-- Reticle Gaze Cursor -->
                     <a-cursor id="gaze-cursor" 
-                              fuse="false" 
-                              geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.023" 
-                              material="color: #39ff14; shader: flat; opacity: 0.9" 
-                              raycaster="objects: .target"
-                              position="0 0 -1"
-                              animation__fusing="property: scale; startEvents: fusing; dur: 800; from: 1 1 1; to: 0.2 0.2 0.2"
-                              animation__click="property: scale; startEvents: click; dur: 150; from: 0.2 0.2 0.2; to: 1 1 1"
-                              animation__mouseleave="property: scale; startEvents: mouseleave; dur: 150; to: 1 1 1">
+                               fuse="false" 
+                               geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.023" 
+                               material="color: #39ff14; shader: flat; opacity: 0.9" 
+                               raycaster="objects: .target"
+                               position="0 0 -1"
+                               animation__fusing="property: scale; startEvents: fusing; dur: 800; from: 1 1 1; to: 0.2 0.2 0.2"
+                               animation__click="property: scale; startEvents: click; dur: 150; from: 0.2 0.2 0.2; to: 1 1 1"
+                               animation__mouseleave="property: scale; startEvents: mouseleave; dur: 150; to: 1 1 1">
                     </a-cursor>
                 </a-camera>
+                <!-- VR Controllers -->
+                <a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .target; far: 40" line="color: #39ff14; opacity: 0.8"></a-entity>
+                <a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .target; far: 40" line="color: #39ff14; opacity: 0.8"></a-entity>
             </a-entity>
 
         </a-scene>
