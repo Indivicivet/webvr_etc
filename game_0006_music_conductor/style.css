@@ -510,3 +510,10 @@ h1 {
         padding: 24px;
     }
 }
+
+/* Hide 2D UI layers when in VR mode */
+.ui-layer.vr-hidden,
+.hud-container.vr-hidden {
+    display: none !important;
+}
+

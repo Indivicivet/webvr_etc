@@ -556,6 +556,7 @@ const audio = new AudioEngine();
 const game = {
     // Game States: 'MENU', 'PLAYING', 'GAMEOVER'
     state: 'MENU',
+    isVR: false,
     
     // Play Modes: 'CHALLENGE', 'JAM'
     mode: 'CHALLENGE',
@@ -692,6 +693,7 @@ const UI = {
         this.panelStart.classList.add('hidden');
         this.panelGameOver.classList.add('hidden');
         this.hud.classList.remove('hidden');
+        updateVRUIVisibility();
 
         // Setup HUD display for Modes
         if (mode === 'JAM') {
@@ -797,6 +799,7 @@ const UI = {
         // UI swaps
         this.hud.classList.add('hidden');
         this.panelGameOver.classList.remove('hidden');
+        updateVRUIVisibility();
     },
 
     exitToMenu() {
@@ -807,6 +810,7 @@ const UI = {
         this.hud.classList.add('hidden');
         this.panelGameOver.classList.add('hidden');
         this.panelStart.classList.remove('hidden');
+        updateVRUIVisibility();
     }
 };
 
@@ -926,6 +930,14 @@ function registerFrameTick() {
         // Prevent massive jumps on tab out
         if (dt > 0.1) return;
 
+        // Capture beat states before they are reset by instrument animations
+        const beats = {
+            drums: game.beatPulseTriggered.drums,
+            bass: game.beatPulseTriggered.bass,
+            synth: game.beatPulseTriggered.synth,
+            lead: game.beatPulseTriggered.lead
+        };
+
         // 1. Interpolate Volumes to track Gaze States
         ['drums', 'bass', 'synth', 'lead'].forEach(name => {
             let targetVol = game.gazeState[name] ? 1.0 : 0.0;
@@ -967,12 +979,18 @@ function registerFrameTick() {
             p.el.setAttribute('position', p.pos);
         });
 
+        // 3b. Animate distant environment objects
+        animateEnvironmentObjects(time, dt, beats);
+
         // 4. Update and animate Floating Instrument Nodes
         animateInstrumentNodes(time, dt);
 
-        // 5. Game Logic matching (Only in Challenge Play mode)
-        if (game.state === 'PLAYING' && game.mode === 'CHALLENGE') {
-            checkChallengeRecipes(dt);
+        // 5. Game Logic matching & VR HUD update
+        if (game.state === 'PLAYING') {
+            if (game.mode === 'CHALLENGE') {
+                checkChallengeRecipes(dt);
+            }
+            updateVRHUD();
         }
     };
     
@@ -1251,11 +1269,17 @@ window.addEventListener('load', () => {
         // 2. Setup Cyberdust particles
         initParticles();
 
+        // 2b. Setup Distant Environment Objects
+        initEnvironmentObjects();
+
         // 3. Bind interactive Raycaster Gaze triggers
         bindGazeTriggers();
 
         // 4. Hook 2D UI panels and buttons
         UI.init();
+
+        // 4b. Hook VR UI panel events and listeners
+        initVRListeners();
 
         // 5. Start main Frame Animation Tick
         registerFrameTick();
@@ -1267,3 +1291,346 @@ window.addEventListener('load', () => {
         scene.addEventListener('loaded', initialize);
     }
 });
+
+// ==========================================
+// 9. VR SPECIFIC HANDLERS & ENVIRONMENT OBJECTS
+// ==========================================
+let environmentObjects = [];
+
+function initEnvironmentObjects() {
+    const scene = document.querySelector('a-scene');
+    const envContainer = document.querySelector('#env-container');
+    if (!envContainer) return;
+    
+    envContainer.innerHTML = '';
+    environmentObjects = [];
+    
+    // 1. Distant Neon Pillars with floating rings
+    const numPillars = 10;
+    const pillarRadius = 16;
+    const colors = ['#ff0055', '#00f0ff', '#a300ff', '#ffbb00'];
+    const tracks = ['drums', 'bass', 'synth', 'lead'];
+    
+    for (let i = 0; i < numPillars; i++) {
+        const angle = (i / numPillars) * Math.PI * 2;
+        const x = Math.cos(angle) * pillarRadius;
+        const z = Math.sin(angle) * pillarRadius;
+        const color = colors[i % colors.length];
+        const linkedTrack = tracks[i % tracks.length];
+        
+        // Main pillar cylinder
+        const pillar = document.createElement('a-entity');
+        pillar.setAttribute('geometry', {
+            primitive: 'cylinder',
+            radius: 0.08,
+            height: 12
+        });
+        pillar.setAttribute('position', { x: x, y: 6, z: z });
+        pillar.setAttribute('material', {
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.4,
+            transparent: true,
+            opacity: 0.8,
+            roughness: 0.2
+        });
+        envContainer.appendChild(pillar);
+        
+        // Add 2 floating rings per pillar
+        const ring1 = document.createElement('a-ring');
+        ring1.setAttribute('radius-inner', 0.25);
+        ring1.setAttribute('radius-outer', 0.3);
+        ring1.setAttribute('rotation', '90 0 0');
+        ring1.setAttribute('material', {
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.8,
+            shader: 'flat',
+            side: 'double'
+        });
+        pillar.appendChild(ring1);
+        
+        const ring2 = document.createElement('a-ring');
+        ring2.setAttribute('radius-inner', 0.35);
+        ring2.setAttribute('radius-outer', 0.38);
+        ring2.setAttribute('rotation', '90 0 0');
+        ring2.setAttribute('material', {
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.6,
+            shader: 'flat',
+            side: 'double'
+        });
+        pillar.appendChild(ring2);
+        
+        environmentObjects.push({
+            type: 'pillar-rings',
+            ring1: ring1,
+            ring2: ring2,
+            baseY1: -3,
+            baseY2: 2,
+            speed1: 0.5 + Math.random() * 0.5,
+            speed2: 0.3 + Math.random() * 0.4,
+            color: color,
+            pillarEl: pillar,
+            linkedTrack: linkedTrack,
+            pillarScaleY: 1.0
+        });
+    }
+    
+    // 2. Large Distant Floating Shapes (further from instrument menu)
+    const numShapes = 25;
+    for (let i = 0; i < numShapes; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 9 + Math.random() * 13; // Between 9m and 22m away
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const y = 2 + Math.random() * 8; // Height between 2m and 10m
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const linkedTrack = tracks[Math.floor(Math.random() * tracks.length)];
+        
+        const shape = document.createElement('a-entity');
+        const primitives = ['octahedron', 'torus', 'box', 'dodecahedron', 'tetrahedron'];
+        const prim = primitives[Math.floor(Math.random() * primitives.length)];
+        
+        const size = 0.35 + Math.random() * 0.6;
+        
+        if (prim === 'torus') {
+            shape.setAttribute('geometry', {
+                primitive: 'torus',
+                radius: size * 0.8,
+                radiusTubular: size * 0.15
+            });
+        } else {
+            shape.setAttribute('geometry', {
+                primitive: prim,
+                radius: size,
+                width: size,
+                height: size,
+                depth: size
+            });
+        }
+        
+        shape.setAttribute('position', { x: x, y: y, z: z });
+        shape.setAttribute('material', {
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.3,
+            wireframe: Math.random() > 0.4,
+            roughness: 0.2,
+            metalness: 0.8
+        });
+        
+        envContainer.appendChild(shape);
+        
+        environmentObjects.push({
+            type: 'floaty',
+            el: shape,
+            pos: { x: x, y: y, z: z },
+            rotSpeed: {
+                x: (Math.random() - 0.5) * 50,
+                y: (Math.random() - 0.5) * 50,
+                z: (Math.random() - 0.5) * 50
+            },
+            floatSpeed: 0.2 + Math.random() * 0.4,
+            floatRange: 0.2 + Math.random() * 0.5,
+            floatOffset: Math.random() * Math.PI * 2,
+            color: color,
+            linkedTrack: linkedTrack,
+            scale: 1.0
+        });
+    }
+}
+
+function animateEnvironmentObjects(time, dt, beats) {
+    environmentObjects.forEach(obj => {
+        if (obj.type === 'pillar-rings') {
+            // Move rings up and down
+            const offset1 = Math.sin(time * 0.001 * obj.speed1) * 2.0;
+            const offset2 = Math.cos(time * 0.001 * obj.speed2) * 2.0;
+            obj.ring1.setAttribute('position', { x: 0, y: obj.baseY1 + offset1, z: 0 });
+            obj.ring2.setAttribute('position', { x: 0, y: obj.baseY2 + offset2, z: 0 });
+            
+            // Reaction to beat
+            if (beats[obj.linkedTrack]) {
+                obj.pillarScaleY = 1.15;
+            } else {
+                obj.pillarScaleY += (1.0 - obj.pillarScaleY) * 6.0 * dt;
+            }
+            obj.pillarEl.setAttribute('scale', { x: 1.0, y: obj.pillarScaleY, z: 1.0 });
+        } else if (obj.type === 'floaty') {
+            // Rotate shape
+            const rot = obj.el.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
+            obj.el.setAttribute('rotation', {
+                x: rot.x + obj.rotSpeed.x * dt,
+                y: rot.y + obj.rotSpeed.y * dt,
+                z: rot.z + obj.rotSpeed.z * dt
+            });
+            
+            // Float height
+            const currentY = obj.pos.y + Math.sin(time * 0.001 * obj.floatSpeed + obj.floatOffset) * obj.floatRange;
+            obj.el.setAttribute('position', { x: obj.pos.x, y: currentY, z: obj.pos.z });
+            
+            // Reaction to beat
+            if (beats[obj.linkedTrack]) {
+                obj.scale = 1.4;
+            } else {
+                obj.scale += (1.0 - obj.scale) * 8.0 * dt;
+            }
+            obj.el.setAttribute('scale', { x: obj.scale, y: obj.scale, z: obj.scale });
+        }
+    });
+}
+
+function updateVRUIVisibility() {
+    const menuPanel = document.getElementById('vr-menu-panel');
+    const gameoverPanel = document.getElementById('vr-gameover-panel');
+    const hudPanel = document.getElementById('vr-hud-panel');
+    if (!menuPanel || !gameoverPanel || !hudPanel) return;
+
+    if (!game.isVR) {
+        menuPanel.setAttribute('visible', 'false');
+        gameoverPanel.setAttribute('visible', 'false');
+        hudPanel.setAttribute('visible', 'false');
+        return;
+    }
+
+    if (game.state === 'MENU') {
+        menuPanel.setAttribute('visible', 'true');
+        gameoverPanel.setAttribute('visible', 'false');
+        hudPanel.setAttribute('visible', 'false');
+    } else if (game.state === 'PLAYING') {
+        menuPanel.setAttribute('visible', 'false');
+        gameoverPanel.setAttribute('visible', 'false');
+        hudPanel.setAttribute('visible', 'true');
+        updateVRHUD();
+    } else if (game.state === 'GAMEOVER') {
+        menuPanel.setAttribute('visible', 'false');
+        gameoverPanel.setAttribute('visible', 'true');
+        hudPanel.setAttribute('visible', 'false');
+        
+        // Update Game Over panel stats
+        const scoreVal = document.getElementById('vr-stat-score');
+        const recipesVal = document.getElementById('vr-stat-recipes');
+        const highscoreVal = document.getElementById('vr-stat-highscore');
+        if (scoreVal) scoreVal.setAttribute('value', `SCORE: ${game.score}`);
+        if (recipesVal) recipesVal.setAttribute('value', `RECIPES COMPLETED: ${game.recipesCompleted}`);
+        if (highscoreVal) highscoreVal.setAttribute('value', `PERSONAL BEST: ${game.highScore}`);
+    }
+}
+
+function updateVRHUD() {
+    const vrScore = document.getElementById('vr-hud-score');
+    const vrCombo = document.getElementById('vr-hud-combo');
+    const vrTimer = document.getElementById('vr-hud-timer');
+    const vrRecipeTitle = document.getElementById('vr-hud-recipe-title');
+    const vrRecipeStems = document.getElementById('vr-hud-recipe-stems');
+    const vrHarmony = document.getElementById('vr-hud-harmony');
+    const vrProgressFill = document.getElementById('vr-hud-progress-fill');
+    if (!vrProgressFill) return;
+
+    if (game.mode === 'JAM') {
+        if (vrScore) vrScore.setAttribute('visible', 'false');
+        if (vrCombo) vrCombo.setAttribute('visible', 'false');
+        if (vrTimer) vrTimer.setAttribute('visible', 'false');
+        if (vrRecipeTitle) vrRecipeTitle.setAttribute('value', 'FREE JAM STUDIO');
+        if (vrRecipeStems) vrRecipeStems.setAttribute('value', 'Look/point to mix tracks');
+        if (vrHarmony) vrHarmony.setAttribute('value', 'MIX LEVEL');
+        
+        // Progress bar at 100%
+        vrProgressFill.setAttribute('scale', { x: 1.0, y: 1, z: 1 });
+        vrProgressFill.setAttribute('position', { x: 0, y: -0.22, z: 0.02 });
+        vrProgressFill.setAttribute('material', 'color', '#00f0ff');
+    } else {
+        if (vrScore) {
+            vrScore.setAttribute('visible', 'true');
+            vrScore.setAttribute('value', `SCORE: ${game.score.toString().padStart(4, '0')}`);
+        }
+        if (vrCombo) {
+            vrCombo.setAttribute('visible', 'true');
+            vrCombo.setAttribute('value', `COMBO: x${game.combo}`);
+        }
+        if (vrTimer) {
+            vrTimer.setAttribute('visible', 'true');
+            const mins = Math.floor(game.timeRemaining / 60);
+            const secs = game.timeRemaining % 60;
+            vrTimer.setAttribute('value', `TIME: ${mins}:${secs.toString().padStart(2, '0')}`);
+        }
+        
+        if (game.currentRecipe) {
+            if (vrRecipeTitle) vrRecipeTitle.setAttribute('value', 'ACTIVE TARGET');
+            if (vrRecipeStems) vrRecipeStems.setAttribute('value', game.currentRecipe.name);
+        }
+        
+        if (vrHarmony) vrHarmony.setAttribute('value', `HARMONY MATCH: ${Math.floor(game.harmonyMeter)}%`);
+        
+        // Progress bar scale & position
+        const s = Math.max(0.001, Math.min(1.0, game.harmonyMeter / 100));
+        vrProgressFill.setAttribute('scale', { x: s, y: 1, z: 1 });
+        // Center of the scaled bar: x = 0.6 * (s - 1)
+        vrProgressFill.setAttribute('position', { x: 0.6 * (s - 1), y: -0.22, z: 0.02 });
+        vrProgressFill.setAttribute('material', 'color', '#39ff14');
+    }
+}
+
+function initVRListeners() {
+    const sceneEl = document.querySelector('a-scene');
+    
+    sceneEl.addEventListener('enter-vr', () => {
+        game.isVR = true;
+        
+        // Hide 2D HTML layers
+        document.getElementById('ui-layer').classList.add('vr-hidden');
+        document.getElementById('hud').classList.add('vr-hidden');
+        
+        updateVRUIVisibility();
+    });
+    
+    sceneEl.addEventListener('exit-vr', () => {
+        game.isVR = false;
+        
+        // Show 2D HTML layers
+        document.getElementById('ui-layer').classList.remove('vr-hidden');
+        if (game.state === 'PLAYING') {
+            document.getElementById('hud').classList.remove('vr-hidden');
+        }
+        
+        updateVRUIVisibility();
+    });
+
+    // Bind click events on VR buttons
+    const btnChallenge = document.getElementById('vr-btn-challenge');
+    if (btnChallenge) {
+        btnChallenge.addEventListener('click', () => {
+            UI.startGame('CHALLENGE');
+        });
+    }
+
+    const btnJam = document.getElementById('vr-btn-jam');
+    if (btnJam) {
+        btnJam.addEventListener('click', () => {
+            UI.startGame('JAM');
+        });
+    }
+
+    const btnRestart = document.getElementById('vr-btn-restart');
+    if (btnRestart) {
+        btnRestart.addEventListener('click', () => {
+            UI.startGame(game.mode);
+        });
+    }
+
+    const btnExit = document.getElementById('vr-btn-exit');
+    if (btnExit) {
+        btnExit.addEventListener('click', () => {
+            UI.exitToMenu();
+        });
+    }
+
+    const btnHudExit = document.getElementById('vr-hud-exit-btn');
+    if (btnHudExit) {
+        btnHudExit.addEventListener('click', () => {
+            UI.exitToMenu();
+        });
+    }
+}

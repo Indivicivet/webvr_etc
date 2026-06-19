@@ -153,10 +153,10 @@
 
             <!-- 1. Player / Camera Rig -->
             <a-entity id="rig" position="0 0 0">
-                <a-camera id="camera" look-controls wasd-controls-enabled="false" position="0 1.6 0">
-                    <!-- Reticle Cursor for gaze input (looks for objects with class "instrument") -->
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls-enabled="false" position="0 1.6 0">
+                    <!-- Reticle Cursor for gaze input (looks for objects with class "instrument" or "vr-btn") -->
                     <a-cursor id="reticle"
-                        raycaster="objects: .instrument; interval: 50;"
+                        raycaster="objects: .instrument, .vr-btn; interval: 50;"
                         fuse="false"
                         position="0 0 -1"
                         geometry="primitive: ring; radiusInner: 0.018; radiusOuter: 0.028"
@@ -172,6 +172,9 @@
                         rotation="90 0 0">
                     </a-entity>
                 </a-camera>
+                <!-- VR Controllers with Laser Pointer for instrument hover / interaction -->
+                <a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .instrument, .vr-btn; interval: 50;" line="color: #ff0055; opacity: 0.6"></a-entity>
+                <a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .instrument, .vr-btn; interval: 50;" line="color: #00f0ff; opacity: 0.6"></a-entity>
             </a-entity>
 
             <!-- 2. Ambient & Spotlight Stage Lighting -->
@@ -322,6 +325,94 @@
                         material="color: #ffbb00; shader: flat; transparent: true; opacity: 0.2">
                 </a-ring>
             </a-entity>
+
+            <!-- VR In-scene UI Panels -->
+            <!-- VR Start Menu Panel -->
+            <a-entity id="vr-menu-panel" position="0 1.6 -2" visible="false">
+                <a-plane width="1.6" height="1.1" color="#0c0b13" material="opacity: 0.9; transparent: true; roughness: 0.5" position="0 0 -0.01"></a-plane>
+                <a-text value="VR MUSIC CONDUCTOR" align="center" color="#00f0ff" width="3.5" font="monoid" position="0 0.4 0.01" shader="flat"></a-text>
+                <a-text value="Select a game mode to begin.\nHover/Aim at a button to select." align="center" color="#ffffff" width="1.8" font="monoid" position="0 0.15 0.01" shader="flat"></a-text>
+                
+                <a-entity id="vr-btn-challenge" class="vr-btn" position="-0.4 -0.2 0.0"
+                          geometry="primitive: box; width: 0.65; height: 0.25; depth: 0.05"
+                          material="color: #ff0055; emissive: #ff0055; emissiveIntensity: 0.3; roughness: 0.4"
+                          animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 150; startEvents: mouseenter"
+                          animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave"
+                          animation__color_hover="property: material.emissiveIntensity; to: 0.8; dur: 150; startEvents: mouseenter"
+                          animation__color_leave="property: material.emissiveIntensity; to: 0.3; dur: 150; startEvents: mouseleave">
+                    <a-text value="CHALLENGE\nMODE" align="center" color="#ffffff" width="1.8" font="monoid" position="0 0 0.03" shader="flat"></a-text>
+                </a-entity>
+                
+                <a-entity id="vr-btn-jam" class="vr-btn" position="0.4 -0.2 0.0"
+                          geometry="primitive: box; width: 0.65; height: 0.25; depth: 0.05"
+                          material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.3; roughness: 0.4"
+                          animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 150; startEvents: mouseenter"
+                          animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave"
+                          animation__color_hover="property: material.emissiveIntensity; to: 0.8; dur: 150; startEvents: mouseenter"
+                          animation__color_leave="property: material.emissiveIntensity; to: 0.3; dur: 150; startEvents: mouseleave">
+                    <a-text value="FREE JAM\nMODE" align="center" color="#ffffff" width="1.8" font="monoid" position="0 0 0.03" shader="flat"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <!-- VR Game Over Panel -->
+            <a-entity id="vr-gameover-panel" position="0 1.6 -2" visible="false">
+                <a-plane width="1.6" height="1.1" color="#0c0b13" material="opacity: 0.9; transparent: true; roughness: 0.5" position="0 0 -0.01"></a-plane>
+                <a-text value="PERFORMANCE ENDED" align="center" color="#ff0055" width="3.5" font="monoid" position="0 0.4 0.01" shader="flat"></a-text>
+                
+                <a-text id="vr-stat-score" value="SCORE: 0000" align="center" color="#ffffff" width="2.4" font="monoid" position="0 0.18 0.01" shader="flat"></a-text>
+                <a-text id="vr-stat-recipes" value="RECIPES COMPLETED: 0" align="center" color="#ffffff" width="2.0" font="monoid" position="0 0.02 0.01" shader="flat"></a-text>
+                <a-text id="vr-stat-highscore" value="PERSONAL BEST: 0" align="center" color="#a300ff" width="2.2" font="monoid" position="0 -0.14 0.01" shader="flat"></a-text>
+                
+                <a-entity id="vr-btn-restart" class="vr-btn" position="-0.4 -0.38 0.0"
+                          geometry="primitive: box; width: 0.65; height: 0.22; depth: 0.05"
+                          material="color: #ff0055; emissive: #ff0055; emissiveIntensity: 0.3; roughness: 0.4"
+                          animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 150; startEvents: mouseenter"
+                          animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave"
+                          animation__color_hover="property: material.emissiveIntensity; to: 0.8; dur: 150; startEvents: mouseenter"
+                          animation__color_leave="property: material.emissiveIntensity; to: 0.3; dur: 150; startEvents: mouseleave">
+                    <a-text value="CONDUCT AGAIN" align="center" color="#ffffff" width="1.6" font="monoid" position="0 0 0.03" shader="flat"></a-text>
+                </a-entity>
+
+                <a-entity id="vr-btn-exit" class="vr-btn" position="0.4 -0.38 0.0"
+                          geometry="primitive: box; width: 0.65; height: 0.22; depth: 0.05"
+                          material="color: #a300ff; emissive: #a300ff; emissiveIntensity: 0.3; roughness: 0.4"
+                          animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 150; startEvents: mouseenter"
+                          animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave"
+                          animation__color_hover="property: material.emissiveIntensity; to: 0.8; dur: 150; startEvents: mouseenter"
+                          animation__color_leave="property: material.emissiveIntensity; to: 0.3; dur: 150; startEvents: mouseleave">
+                    <a-text value="EXIT TO MENU" align="center" color="#ffffff" width="1.6" font="monoid" position="0 0 0.03" shader="flat"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <!-- VR HUD Panel -->
+            <a-entity id="vr-hud-panel" position="0 2.5 -3.2" rotation="15 0 0" visible="false">
+                <a-plane width="2.4" height="0.75" color="#0c0b13" material="opacity: 0.85; transparent: true; roughness: 0.5" position="0 0 -0.01"></a-plane>
+                
+                <a-text id="vr-hud-score" value="SCORE: 0000" align="left" color="#ffffff" width="2.0" font="monoid" position="-1.1 0.22 0.01" shader="flat"></a-text>
+                <a-text id="vr-hud-combo" value="COMBO: x1" align="left" color="#ffbb00" width="1.6" font="monoid" position="-1.1 0.06 0.01" shader="flat"></a-text>
+                
+                <a-text id="vr-hud-recipe-title" value="ACTIVE TARGET" align="center" color="#a300ff" width="1.8" font="monoid" position="0 0.25 0.01" shader="flat"></a-text>
+                <a-text id="vr-hud-recipe-stems" value="DRUMS + BASS" align="center" color="#ffffff" width="2.2" font="monoid" position="0 0.1 0.01" shader="flat"></a-text>
+                <a-text id="vr-hud-harmony" value="HARMONY MATCH: 0%" align="center" color="#39ff14" width="1.8" font="monoid" position="0 -0.08 0.01" shader="flat"></a-text>
+                
+                <a-plane id="vr-hud-progress-bg" width="1.2" height="0.06" color="#222" position="0 -0.22 0.01"></a-plane>
+                <a-plane id="vr-hud-progress-fill" width="1.2" height="0.06" color="#39ff14" position="0 -0.22 0.02" material="shader: flat"></a-plane>
+
+                <a-text id="vr-hud-timer" value="TIME: 0:45" align="right" color="#ff0055" width="2.0" font="monoid" position="1.1 0.22 0.01" shader="flat"></a-text>
+                
+                <a-entity id="vr-hud-exit-btn" class="vr-btn" position="0.8 -0.22 0.0"
+                          geometry="primitive: box; width: 0.45; height: 0.18; depth: 0.03"
+                          material="color: #a300ff; emissive: #a300ff; emissiveIntensity: 0.2; roughness: 0.4"
+                          animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 150; startEvents: mouseenter"
+                          animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave"
+                          animation__color_hover="property: material.emissiveIntensity; to: 0.7; dur: 150; startEvents: mouseenter"
+                          animation__color_leave="property: material.emissiveIntensity; to: 0.2; dur: 150; startEvents: mouseleave">
+                    <a-text value="EXIT" align="center" color="#ffffff" width="1.4" font="monoid" position="0 0 0.02" shader="flat"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <!-- Distant Environment Objects Container -->
+            <a-entity id="env-container"></a-entity>
 
             <!-- 6. Floating Star / Cyberdust Particles -->
             <a-entity id="dust-container"></a-entity>
