@@ -174,6 +174,53 @@ class SoundEngine {
 const audio = new SoundEngine();
 
 // ==========================================
+// 1.5. VR CONTROLLER & HAPTIC SYSTEM
+// ==========================================
+let controllersConnected = 0;
+
+function triggerVRHaptics(intensity = 0.5, duration = 100) {
+    try {
+        const leftController = document.getElementById('left-controller');
+        const rightController = document.getElementById('right-controller');
+        [leftController, rightController].forEach(controllerEl => {
+            if (controllerEl && controllerEl.components['tracked-controls-webxr']) {
+                const controller = controllerEl.components['tracked-controls-webxr'].controller;
+                if (controller && controller.gamepad && controller.gamepad.hapticActuators && controller.gamepad.hapticActuators.length > 0) {
+                    controller.gamepad.hapticActuators[0].pulse(intensity, duration).catch(() => {});
+                }
+            } else if (controllerEl && controllerEl.components['tracked-controls']) {
+                const controller = controllerEl.components['tracked-controls'].controller;
+                if (controller && controller.gamepad && controller.gamepad.hapticActuators && controller.gamepad.hapticActuators.length > 0) {
+                    controller.gamepad.hapticActuators[0].pulse(intensity, duration).catch(() => {});
+                }
+            }
+        });
+    } catch (e) {
+        console.warn('VR Haptics error:', e);
+    }
+}
+
+function updateCursorState() {
+    const sceneEl = document.querySelector('a-scene');
+    const gazeCursor = document.getElementById('gaze-cursor');
+    if (!gazeCursor) return;
+    
+    const inVR = sceneEl && sceneEl.is('vr-mode');
+    if (inVR) {
+        if (controllersConnected > 0) {
+            gazeCursor.setAttribute('visible', 'false');
+            gazeCursor.setAttribute('raycaster', 'enabled: false');
+        } else {
+            gazeCursor.setAttribute('visible', 'true');
+            gazeCursor.setAttribute('raycaster', 'enabled: true; objects: .target');
+        }
+    } else {
+        gazeCursor.setAttribute('visible', 'false');
+        gazeCursor.setAttribute('raycaster', 'enabled: false');
+    }
+}
+
+// ==========================================
 // 2. GAME STATE CONFIGURATION
 // ==========================================
 const COLORS = ['#00f3ff', '#ff007f', '#ffff00', '#9d00ff']; // Cyan, Magenta, Yellow, Purple
@@ -313,6 +360,8 @@ document.querySelector('a-scene').setAttribute('space-animate', '');
 document.addEventListener('DOMContentLoaded', () => {
     const sceneEl = document.querySelector('a-scene');
     const gazeCursor = document.getElementById('gaze-cursor');
+    const leftController = document.getElementById('left-controller');
+    const rightController = document.getElementById('right-controller');
     
     // Hide gaze cursor reticle on desktop by default (use mouse cursor instead)
     if (gazeCursor) {
@@ -322,26 +371,101 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Toggle gaze reticle depending on VR entry/exit
     sceneEl.addEventListener('enter-vr', () => {
-        if (gazeCursor) {
-            gazeCursor.setAttribute('visible', 'true');
-            gazeCursor.setAttribute('raycaster', 'enabled: true; objects: .target');
+        UI.panelStart.classList.add('hidden');
+        UI.panelGameOver.classList.add('hidden');
+        UI.hud.classList.add('hidden');
+
+        if (game.active) {
+            UI.vrHud.setAttribute('visible', 'true');
+            UI.vrBtnRestart.setAttribute('visible', 'false');
+            UI.vrBtnRestart.setAttribute('scale', '0.001 0.001 0.001');
+            UI.vrBtnRestart.classList.remove('target');
+            UI.targetRing.setAttribute('visible', 'false');
+            UI.targetRing.setAttribute('scale', '0.001 0.001 0.001');
+            UI.targetRing.classList.remove('target');
+        } else {
+            UI.vrHud.setAttribute('visible', 'false');
+            if (game.wave === 0) {
+                UI.targetRing.setAttribute('visible', 'true');
+                UI.targetRing.setAttribute('scale', '1 1 1');
+                UI.targetRing.classList.add('target');
+                UI.vrBtnRestart.setAttribute('visible', 'false');
+                UI.vrBtnRestart.setAttribute('scale', '0.001 0.001 0.001');
+                UI.vrBtnRestart.classList.remove('target');
+            } else {
+                UI.vrBtnRestart.setAttribute('visible', 'true');
+                UI.vrBtnRestart.setAttribute('scale', '1 1 1');
+                UI.vrBtnRestart.classList.add('target');
+                UI.targetRing.setAttribute('visible', 'true');
+                UI.targetRing.setAttribute('scale', '1 1 1');
+                UI.targetRing.classList.add('target');
+            }
         }
+        updateCursorState();
     });
     
     sceneEl.addEventListener('exit-vr', () => {
-        if (gazeCursor) {
-            gazeCursor.setAttribute('visible', 'false');
-            gazeCursor.setAttribute('raycaster', 'enabled: false');
+        UI.vrHud.setAttribute('visible', 'false');
+        UI.vrBtnRestart.setAttribute('visible', 'false');
+        UI.vrBtnRestart.setAttribute('scale', '0.001 0.001 0.001');
+        UI.vrBtnRestart.classList.remove('target');
+        UI.targetRing.setAttribute('visible', 'false');
+        UI.targetRing.setAttribute('scale', '0.001 0.001 0.001');
+        UI.targetRing.classList.remove('target');
+
+        if (game.active) {
+            UI.hud.classList.remove('hidden');
+        } else {
+            if (game.wave === 0) {
+                UI.panelStart.classList.remove('hidden');
+            } else {
+                UI.panelGameOver.classList.remove('hidden');
+            }
         }
+        updateCursorState();
     });
+
+    // Monitor controller connections
+    if (leftController) {
+        leftController.addEventListener('controllerconnected', () => {
+            controllersConnected++;
+            updateCursorState();
+        });
+        leftController.addEventListener('controllerdisconnected', () => {
+            controllersConnected = Math.max(0, controllersConnected - 1);
+            updateCursorState();
+        });
+    }
+    
+    if (rightController) {
+        rightController.addEventListener('controllerconnected', () => {
+            controllersConnected++;
+            updateCursorState();
+        });
+        rightController.addEventListener('controllerdisconnected', () => {
+            controllersConnected = Math.max(0, controllersConnected - 1);
+            updateCursorState();
+        });
+    }
 
     // Connect event listeners to UI buttons
     UI.btnStart.addEventListener('click', startGame);
     UI.btnRestart.addEventListener('click', startGame);
     
-    // VR Gaze clicks
+    // VR Gaze/Controller clicks
     UI.targetRing.addEventListener('click', startGame);
     UI.vrBtnRestart.addEventListener('click', startGame);
+
+    UI.targetRing.addEventListener('mouseenter', () => {
+        if (UI.targetRing.classList.contains('target')) {
+            triggerVRHaptics(0.3, 60);
+        }
+    });
+    UI.vrBtnRestart.addEventListener('mouseenter', () => {
+        if (UI.vrBtnRestart.classList.contains('target')) {
+            triggerVRHaptics(0.3, 60);
+        }
+    });
     
     // Gaze/Pointer events for orbital cubes
     const cubes = document.querySelectorAll('.color-cube');
@@ -349,6 +473,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cube.addEventListener('click', () => {
             const idx = parseInt(cube.getAttribute('data-index'), 10);
             handleCubeZap(idx, cube);
+        });
+        cube.addEventListener('mouseenter', () => {
+            if (game.active && cube.dataset.cleared === 'false') {
+                triggerVRHaptics(0.2, 50);
+            }
         });
     });
 
@@ -376,17 +505,24 @@ function startGame() {
     // Hide Overlays
     UI.panelStart.classList.add('hidden');
     UI.panelGameOver.classList.add('hidden');
-    UI.hud.classList.remove('hidden');
     
-    // Hide VR elements & show VR HUD
+    // Hide VR elements
     UI.vrBtnRestart.setAttribute('scale', '0.001 0.001 0.001');
     UI.vrBtnRestart.setAttribute('visible', 'false');
+    UI.vrBtnRestart.classList.remove('target');
     
     UI.targetRing.setAttribute('scale', '0.001 0.001 0.001');
     UI.targetRing.setAttribute('visible', 'false');
     UI.targetRing.classList.remove('target'); // Disable gaze selection
     
-    UI.vrHud.setAttribute('visible', 'true');
+    const sceneEl = document.querySelector('a-scene');
+    if (sceneEl.is('vr-mode')) {
+        UI.vrHud.setAttribute('visible', 'true');
+        UI.hud.classList.add('hidden');
+    } else {
+        UI.hud.classList.remove('hidden');
+        UI.vrHud.setAttribute('visible', 'false');
+    }
     
     // Generate First Wave
     generateWave();
@@ -483,8 +619,9 @@ function handleCubeZap(idx, cube) {
             easing: 'easeInQuad'
         });
         
-        // Play correct chime
+        // Play correct chime and trigger haptic pulse
         audio.playZap();
+        triggerVRHaptics(0.6, 120);
         
         // Stats increment
         game.score += 100 * game.multiplier;
@@ -500,8 +637,10 @@ function handleCubeZap(idx, cube) {
         }
     } else {
         // --- INCORRECT MATCH ---
-        // Play buzzer
+        // Play buzzer and trigger double warning haptic pulse
         audio.playBuzz();
+        triggerVRHaptics(0.8, 150);
+        setTimeout(() => triggerVRHaptics(0.8, 150), 200);
         
         // Reset multiplier
         game.multiplier = 1;
@@ -628,9 +767,6 @@ function gameOver() {
         UI.newRecordIndicator.classList.add('hidden');
     }
     
-    UI.hud.classList.add('hidden');
-    UI.panelGameOver.classList.remove('hidden');
-    
     // Clean up A-Frame scene visual indicators
     UI.targetSphere.setAttribute('color', '#444444');
     UI.targetSphere.setAttribute('material', 'emissive', '#222222');
@@ -650,14 +786,35 @@ function gameOver() {
         });
     });
     
-    // Show VR UI elements
-    UI.vrBtnRestart.setAttribute('visible', 'true');
-    UI.vrBtnRestart.setAttribute('scale', '1 1 1');
-    
-    UI.targetRing.setAttribute('visible', 'true');
-    UI.targetRing.setAttribute('scale', '1 1 1');
-    UI.targetRing.classList.add('target'); // Allow look-to-restart trigger
-    
-    // Hide VR HUD
-    UI.vrHud.setAttribute('visible', 'false');
+    const sceneEl = document.querySelector('a-scene');
+    if (sceneEl.is('vr-mode')) {
+        // Show VR UI elements
+        UI.vrBtnRestart.setAttribute('visible', 'true');
+        UI.vrBtnRestart.setAttribute('scale', '1 1 1');
+        UI.vrBtnRestart.classList.add('target');
+        
+        UI.targetRing.setAttribute('visible', 'true');
+        UI.targetRing.setAttribute('scale', '1 1 1');
+        UI.targetRing.classList.add('target'); // Allow look-to-restart trigger
+        
+        // Hide VR HUD
+        UI.vrHud.setAttribute('visible', 'false');
+
+        // Hide 2D overlays
+        UI.hud.classList.add('hidden');
+        UI.panelGameOver.classList.add('hidden');
+    } else {
+        // Show 2D elements
+        UI.hud.classList.add('hidden');
+        UI.panelGameOver.classList.remove('hidden');
+
+        // Hide VR elements
+        UI.vrBtnRestart.setAttribute('visible', 'false');
+        UI.vrBtnRestart.setAttribute('scale', '0.001 0.001 0.001');
+        UI.vrBtnRestart.classList.remove('target');
+        UI.targetRing.setAttribute('visible', 'false');
+        UI.targetRing.setAttribute('scale', '0.001 0.001 0.001');
+        UI.targetRing.classList.remove('target');
+        UI.vrHud.setAttribute('visible', 'false');
+    }
 }

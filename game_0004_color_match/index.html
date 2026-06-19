@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Chromatic Gaze Matcher - VR Color Puzzle</title>
-    <meta name="description" content="A cozy and casual gaze-driven VR color matching puzzle game. Match colored cubes to the central target sphere using eye gaze. Hostable on GitHub Pages.">
+    <meta name="description" content="A cozy and casual color-matching puzzle game in VR. Use VR controllers or gaze tracking to match colored cubes to the pulsing target sphere. Hostable on GitHub Pages.">
     
     <!-- Premium Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,7 +26,7 @@
         <div id="panel-start" class="overlay-panel">
             <div class="logo-badge">Gaze Puzzle</div>
             <h1>Chromatic Gaze Matcher</h1>
-            <p class="subtitle">A cozy, casual color-matching puzzle game. Look at cubes matching the central pulsing target sphere to clear them before time runs out!</p>
+            <p class="subtitle">A cozy, casual color-matching puzzle game. Aim with your VR controllers and pull the trigger, or look at cubes matching the central pulsing target sphere to clear them before time runs out!</p>
             
             <div class="guide-container">
                 <div class="guide-item">
@@ -216,6 +216,9 @@
                               animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeOutQuad; dur: 150; to: 1 1 1">
                     </a-cursor>
                 </a-camera>
+                <!-- VR Controllers -->
+                <a-entity id="left-controller" laser-controls="hand: left" raycaster="objects: .target; far: 100; interval: 50" line="color: #00f3ff; opacity: 0.7"></a-entity>
+                <a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .target; far: 100; interval: 50" line="color: #00f3ff; opacity: 0.7"></a-entity>
             </a-entity>
 
             <!-- Mouse cursor for desktop/mobile pointer interactions -->
