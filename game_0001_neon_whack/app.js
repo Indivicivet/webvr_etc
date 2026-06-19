@@ -212,12 +212,54 @@ const UI = {
     
     // 3D VR In-scene UI Panels
     vrBtnStart: document.getElementById('vr-btn-start'),
+    vrBtnStartText: document.getElementById('vr-btn-start-text'),
     vrBtnRestart: document.getElementById('vr-btn-restart'),
+    vrBtnRestartText: document.getElementById('vr-btn-restart-text'),
     vrHud: document.getElementById('vr-hud'),
     vrHudScore: document.getElementById('vr-hud-score'),
     vrHudLives: document.getElementById('vr-hud-lives'),
-    consoleGlow: document.getElementById('console-glow')
+    consoleGlow: document.getElementById('console-glow'),
+    
+    // Gaze Cursor & VR Controllers
+    gazeCursor: document.getElementById('gaze-cursor'),
+    leftHand: document.getElementById('left-hand'),
+    rightHand: document.getElementById('right-hand')
 };
+
+// State to track if VR controllers are connected
+let leftConnected = false;
+let rightConnected = false;
+
+function updateGazeCursorState() {
+    const hasControllers = leftConnected || rightConnected;
+    if (hasControllers) {
+        // Disable gaze cursor raycasting and hide it
+        if (UI.gazeCursor) {
+            UI.gazeCursor.setAttribute('raycaster', 'objects', 'none');
+            UI.gazeCursor.setAttribute('visible', 'false');
+        }
+        // Update VR overlay button text to suggest trigger pointing
+        if (UI.vrBtnStartText) {
+            UI.vrBtnStartText.setAttribute('value', 'TRIGGER TO START');
+        }
+        if (UI.vrBtnRestartText) {
+            UI.vrBtnRestartText.setAttribute('value', 'GAME OVER\nTRIGGER TO RESTART');
+        }
+    } else {
+        // Enable gaze cursor raycasting and show it
+        if (UI.gazeCursor) {
+            UI.gazeCursor.setAttribute('raycaster', 'objects', '.target');
+            UI.gazeCursor.setAttribute('visible', 'true');
+        }
+        // Update VR overlay button text back to gaze
+        if (UI.vrBtnStartText) {
+            UI.vrBtnStartText.setAttribute('value', 'LOOK AT TO START');
+        }
+        if (UI.vrBtnRestartText) {
+            UI.vrBtnRestartText.setAttribute('value', 'GAME OVER\nLOOK TO RESTART');
+        }
+    }
+}
 
 // Initialize elements and wire up event handlers
 function initGame() {
@@ -227,13 +269,13 @@ function initGame() {
         const idx = parseInt(el.getAttribute('data-node'), 10);
         game.nodes[idx].element = el;
         
-        // Target whacking event (A-Frame dispatch 'click' via fuse gaze)
+        // Target whacking event (A-Frame dispatch 'click' via controller trigger or fuse gaze)
         el.addEventListener('click', () => {
             onNodeZap(idx);
         });
     });
 
-    // Wire Start and Restart actions (both desktop button click & gaze triggers)
+    // Wire Start and Restart actions (both desktop button click & gaze/controller triggers)
     UI.btnStart.addEventListener('click', startGame);
     UI.btnRestart.addEventListener('click', startGame);
     
@@ -246,15 +288,27 @@ function initGame() {
     // Sound initialization on first user tap
     document.body.addEventListener('pointerdown', () => audio.resume());
 
-    // Request Pointer Lock on Click during active gameplay (desktop support)
-    document.addEventListener('click', () => {
-        if (game.active) {
-            const canvas = document.querySelector('canvas');
-            if (canvas && document.pointerLockElement !== canvas) {
-                canvas.requestPointerLock();
-            }
-        }
-    });
+    // Listen for VR controller connection/disconnection
+    if (UI.leftHand) {
+        UI.leftHand.addEventListener('controllerconnected', () => {
+            leftConnected = true;
+            updateGazeCursorState();
+        });
+        UI.leftHand.addEventListener('controllerdisconnected', () => {
+            leftConnected = false;
+            updateGazeCursorState();
+        });
+    }
+    if (UI.rightHand) {
+        UI.rightHand.addEventListener('controllerconnected', () => {
+            rightConnected = true;
+            updateGazeCursorState();
+        });
+        UI.rightHand.addEventListener('controllerdisconnected', () => {
+            rightConnected = false;
+            updateGazeCursorState();
+        });
+    }
 }
 
 // Run initialization immediately since script is deferred type="module"
@@ -313,11 +367,6 @@ function startGame() {
 function gameOver() {
     game.active = false;
     audio.playGameOverFanfare();
-
-    // Exit pointer lock if active
-    if (document.pointerLockElement) {
-        document.exitPointerLock();
-    }
 
     // Persist High Scores
     let isNewRecord = false;

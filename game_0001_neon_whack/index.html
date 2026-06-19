@@ -132,7 +132,7 @@
                        animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
                        animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
                     <!-- Text on button -->
-                    <a-text value="LOOK AT TO START" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.06" material="shader: flat;"></a-text>
+                    <a-text id="vr-btn-start-text" value="LOOK AT TO START" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.06" material="shader: flat;"></a-text>
                 </a-box>
 
                 <!-- 3D Restart Button Panel (Starts hidden) -->
@@ -141,7 +141,7 @@
                        animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
                        animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
                     <!-- Text on button -->
-                    <a-text value="GAME OVER\nLOOK TO RESTART" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.06" material="shader: flat;"></a-text>
+                    <a-text id="vr-btn-restart-text" value="GAME OVER\nLOOK TO RESTART" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.06" material="shader: flat;"></a-text>
                 </a-box>
 
                 <!-- Floating VR Score HUD (Always visible above the board in VR) -->
@@ -255,6 +255,9 @@
                               animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeOutQuad; dur: 150; to: 1 1 1">
                     </a-entity>
                 </a-camera>
+                <!-- VR Tracked Controllers -->
+                <a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .target; far: 5; showLine: true;" line="color: #00f3ff; opacity: 0.8;"></a-entity>
+                <a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .target; far: 5; showLine: true;" line="color: #ff007f; opacity: 0.8;"></a-entity>
             </a-entity>
 
         </a-scene>
