@@ -5,63 +5,82 @@ GAME DESIGN SKETCH: ZEN BUBBLE POPPER (0005)
 1. HIGH CONCEPT
 --------------------------------------------------------------------------------
 A relaxing, satisfying game where the player stands in a peaceful garden setting 
-and pops shiny, translucent soap bubbles floating up in front of them. It is 
+and pops shiny, translucent soap bubbles floating up around them. It is 
 designed for pure casual satisfaction.
 
 2. HARDWARE CONSTRAINTS & ACCESSIBILITY
 --------------------------------------------------------------------------------
-* Controls: 100% Gaze-Only. Unlike puzzle games, there is no fuse countdown. 
-  The moment the player's raycast reticle overlaps with a bubble, it pops 
-  instantly (0ms delay). This makes the interaction feel immediate and snappy.
-* Field of View (FoV): Optimized for 60-degree FoV. Bubbles spawn in a narrow 
-  stream directly in front of the player, drift slowly upward, and pop naturally 
-  if they leave the screen boundary.
-* Comfort: Slow-moving objects, static camera, and a calm, stationary background 
-  make it highly comfortable.
+* Controls: We initially tried a 100% Gaze-Only control scheme. However, this 
+  was updated to support WebXR tracked controllers (e.g. Meta Touch, Vive, Index) 
+  using a laser pointer for aiming/popping, while retaining gaze-only interaction 
+  as an automatic fallback if controllers are not detected.
+* Interaction: Popping is instant. When the laser pointer (or gaze cursor) 
+  overlaps a bubble and the trigger is pulled (or hovered on gaze), it pops 
+  instantly (0ms delay).
+* Locomotion: We initially tried a static camera setup. However, we updated it 
+  to allow movement in VR: hold the Grip button on either controller to steer/walk 
+  in the direction you point, or use the thumbstick/trackpad for smooth locomotion. 
+  A safety boundary clamps the player position within an 8-meter radius of the 
+  starting area. Desktop players can use WASD keys to walk.
+* Field of View (FoV): We initially tried spawning bubbles in a narrow stream 
+  directly in front of the player (Z between -3 and -5). To improve visual depth 
+  and scale, we expanded bubble spawning so they scatter closer and further away 
+  (X between -4.0 and 4.0, Z between -1.5 and -9.0), with a portion originating 
+  from the central pond and others spawning from the surrounding grass.
+* Comfort: Slow-moving objects, boundary clamping, and slow, linear movement 
+  speeds (1.5 m/s) keep the experience highly comfortable.
 
 3. VISUAL LAYOUT
 --------------------------------------------------------------------------------
 * Background: A stylized, soft-colored low-poly skybox representing a sunny field.
-* Bubbles: Shiny spheres using a custom glass/iridescent shader that shimmers. 
+* Environment: A peaceful meadow containing cherry blossom trees, pine trees, 
+  and mountains. Features a central cobblestone pond decorated with lily pads 
+  and lotus flowers, surrounded by low-poly boulders, glowing Japanese stone 
+  lanterns (Toro), and colorful flower patches.
+* Bubbles: Shiny spheres using a standard material with high reflectivity 
+  (roughness: 0.05, metalness: 0.95) and transparency. 
   When popped, they emit a quick splash of tiny water droplet particles.
-* HUD: A simple floating counter at the top of the viewport displaying current score.
+* HUD: A glassmorphic screen overlay (for 2D players) and a curved in-world 
+  glass dashboard (for VR players) displaying current score, multiplier, and time.
 
 4. CORE GAMEPLAY LOOP
 --------------------------------------------------------------------------------
-1. Start Screen: A single giant bubble containing the word "START" floats in front. 
-   Gaze at it to pop it and begin the game.
-2. Gameplay: Streams of bubbles rise from the bottom edge of the player's view.
-3. Interaction: The player moves their head to trace the bubbles. As the cursor 
-   touches a bubble:
+1. Start Screen: A single giant bubble containing the word "POPMETOPLAY" floats in 
+  front. Gaze at it or shoot/trigger it to begin. (Fades out the 2D panel).
+2. Gameplay: Streams of bubbles rise from the pond and surrounding meadow.
+3. Interaction: The player points and pulls the trigger (or uses camera gaze) 
+   to pop bubbles:
    - Play a high-quality, organic "pop" sound effect.
    - Trigger a particle burst.
-   - Remove the bubble entity and add 1 point to the score.
+   - Remove the bubble entity and add points.
 4. Special Bubbles:
-   - Golden Bubble: Grants a temporary score multiplier.
+   - Golden Bubble: Grants a temporary 2x score multiplier.
    - Star Bubble: Pops all other bubbles currently on screen.
-5. Mode: 60-second time attack. Try to get the highest score possible before the 
-   timer runs out.
+5. Mode: 60-second time attack. Try to get the highest score possible.
+6. Game Over: A 3D restart bubble floats in front. Pop it to play again without 
+   exiting VR.
 
 5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
 --------------------------------------------------------------------------------
 * Setup:
   `<a-scene>`
-    `<a-camera>`
-      `<a-cursor fuse="false" raycaster="objects: .bubble" material="color: white; opacity: 0.5"></a-cursor>`
-    `</a-camera>`
+    `<a-entity id="rig" position="0 0 0">`
+      `<a-camera id="camera" position="0 1.6 0" look-controls="pointerLockEnabled: false">`
+        `<a-cursor id="cursor" fuse="false" raycaster="objects: .bubble, .vr-btn"></a-cursor>`
+      `</a-camera>`
+      `<a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .bubble, .vr-btn; far: 50" vr-movement-controls></a-entity>`
+      `<a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .bubble, .vr-btn; far: 50" vr-movement-controls></a-entity>`
+    `</a-entity>`
   `</a-scene>`
 
 * Spawning:
-  Use a JavaScript generator to spawn bubble entities at random X intervals (between 
-  -1.5 and 1.5) and Z depths (between -3 and -5).
+  Use a JavaScript generator to spawn bubble entities over the pond or scattered 
+  throughout the garden.
   Animate position upward:
-  `<a-sphere class="bubble" radius="0.15" material="shader: standard; roughness: 0.1; metalness: 0.1; opacity: 0.6; color: lightblue" animation="property: position; to: 0 4 -4; dur: 4000; easing: linear; loop: false"></a-sphere>`
+  `<a-sphere class="bubble" radius="0.15" material="shader: standard; roughness: 0.05; metalness: 0.95; opacity: 0.55; color: #81ecec; transparent: true"></a-sphere>`
 
 * Event Listeners:
-  Since `fuse` is false, the `click` event is fired instantly when the raycaster 
-  collides.
+  Tracks clicks (instant trigger click or touch/gaze click) to pop:
   `bubbleEl.addEventListener('click', () => {`
-    `playPopSound();`
-    `spawnParticles(bubbleEl.object3D.position);`
-    `bubbleEl.parentNode.removeChild(bubbleEl);`
+    `bubble.pop();`
   `});`

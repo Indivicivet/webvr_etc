@@ -10,9 +10,11 @@ energy barriers by tilting their head left or right.
 
 2. HARDWARE CONSTRAINTS & ACCESSIBILITY
 --------------------------------------------------------------------------------
-* Controls: 100% Gyro-based (Head tilt). No buttons or controllers. The game reads 
-  the camera's local rotation (specifically yaw or roll depending on device setup) 
-  to position the player's glider in one of the 6 hexagonal lanes.
+* Controls: Steer via Gyro-based head tilt (yaw/roll). We initially tried a gaze-only 
+  input model without any controller support for menu interactions, but it needed 
+  changing to include WebXR VR controller support (laser pointer controls) for 
+  clicking the Start/Restart buttons to make it fully playable in VR. Desktop fallback 
+  supports mouse position tracking and keyboard (A/D or Arrows).
 * Field of View (FoV): Optimized for low-FoV headsets (60-70 degrees). Since the 
   tunnel converges to a single point in the distance directly in front of the camera, 
   all upcoming obstacles are visible immediately.
@@ -30,36 +32,42 @@ energy barriers by tilting their head left or right.
 
 4. CORE GAMEPLAY LOOP
 --------------------------------------------------------------------------------
-1. Start Screen: Player aligns their head to center a "CALIBRATE & START" ring, 
-   initializing the gyro zero-point.
+1. Start Screen: We initially tried to have players align their head with a 
+   "CALIBRATE & START" ring, but it needed changing to a more standard menu flow. 
+   Now, a "Calibrate & Launch" button (2D HTML and 3D VR box) zero-points the gyro 
+   and starts the flight.
 2. Speeding Up: The tunnel wireframes start sliding backwards, giving the illusion 
    of forward velocity.
-3. Obstacles: Obstacles spawn at Z = -50 (far away) in random lane configurations.
+3. Obstacles: Obstacles spawn at Z = -55 (far away) in random lane configurations.
 4. Evasion: The player tilts their head left or right to move their glider to one 
    of the six lanes (sectors 0 to 5).
-5. Collision Check: When an obstacle reaches Z = 0 (the player's depth):
-   - If the player is in a blocked lane, play a shield-depleted crash sound and trigger
-     game over.
+5. Collision Check: When an obstacle reaches the player's depth (Z = -2.5):
+   - We initially tried a 1-hit game over upon collision, but it needed changing 
+     to a 3-point shield system to increase player leniency and improve the overall gameplay feel. 
+     If the player is in a blocked lane, they lose 1 shield cell (flashing the cockpit red) 
+     and trigger a game over only when shields reach 0.
    - If the player is in an open lane, play a "pass" whoosh sound, increment the score.
 6. Score: Rises continually as they survive. The obstacles speed up over time.
 
 5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
 --------------------------------------------------------------------------------
 * Cockpit & Camera:
-  `<a-camera id="player-cam" look-controls="magicWindowTrackingEnabled: true">`
-    `<!-- Static HUD Anchor -->`
-    `<a-entity id="hud" position="0 0 -1">`
-      `<a-ring radius-inner="0.05" radius-outer="0.06" color="cyan" opacity="0.3"></a-ring>`
-      `<a-text id="score-val" value="0" position="-0.4 0.3 0" width="1.5"></a-text>`
-    `</a-entity>`
-  `</a-camera>`
+  We initially tried a basic camera rig, but it needed changing to support VR controllers 
+  and prevent default desktop dragging conflicts:
+  `<a-entity id="rig" position="0 1.6 0">`
+    `<a-camera id="camera" look-controls="pointerLockEnabled: false; mouseEnabled: false; touchEnabled: false" wasd-controls="enabled: false">`
+      `<!-- VR Cockpit Visor & 3D HUD elements (attached to camera) -->`
+    `</a-camera>`
+    `<a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .target; far: 5"></a-entity>`
+    `<a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .target; far: 5"></a-entity>`
+  `</a-entity>`
 
 * Hexagonal Lanes:
   Define 6 angles: 0, 60, 120, 180, 240, 300 degrees.
-  Map the camera's Y-axis (yaw) or Z-axis (roll) rotation value to one of these bins.
-  For example:
-  `let yaw = cameraEl.object3D.rotation.y * (180 / Math.PI);`
-  `let activeLane = Math.floor(((yaw + 180 + 30) % 360) / 60);`
+  We initially tried to map only the Y-axis rotation (yaw), but it needed changing 
+  to combine both yaw and roll for a more intuitive head tilting feel:
+  `const steerDeflection = (yawDeg * yawSensitivity) + (rollDeg * rollSensitivity);`
+  If the deflection exceeds a small dead zone, we map it to the nearest 60-degree sector.
 
 * Spawning Obstacles:
   - Create a pool of obstacle entities (`<a-entity class="obstacle">`) shaped like 

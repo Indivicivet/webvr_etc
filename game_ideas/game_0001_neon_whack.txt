@@ -1,5 +1,5 @@
 ================================================================================
-GAME DESIGN SKETCH: NEON GAZE WHACK (0001)
+GAME DESIGN SKETCH: NEON WHACK (0001)
 ================================================================================
 
 1. HIGH CONCEPT
@@ -7,17 +7,20 @@ GAME DESIGN SKETCH: NEON GAZE WHACK (0001)
 A casual arcade Whack-a-Mole clone styled with vibrant, retro-futuristic neon
 aesthetics. The player sits or stands in a fixed position, facing a 3x3 vertical 
 grid of ports. Glowing energy cores randomly pop out of these ports, and the 
-player must "deactivate" them by looking directly at them.
+player must deactivate them before they retreat.
 
 2. HARDWARE CONSTRAINTS & ACCESSIBILITY
 --------------------------------------------------------------------------------
-* Controls: 100% Gaze-Only. No controllers, screen-taps, or buttons required. 
-  A "gaze fuse cursor" (a ring reticle that fills up over 300ms of sustained hover) 
-  is used to trigger clicks.
-* Field of View (FoV): Designed for low-FoV headsets (approx 60 degrees). The 
-  entire 3x3 grid spans a tight angular width of roughly 35 degrees, meaning the 
-  player only needs micro-movements of their neck to target any node. No 
-  straining or turning around.
+* Controls: VR controllers (trigger zapping) or desktop mouse clicks. 
+  - Note: We initially tried 100% gaze-only controls with a 300ms fuse reticle, 
+    but it needed changing to support active VR controllers and standard mouse click 
+    interactions to remove accidental triggers and provide a punchier arcade feel.
+* Field of View (FoV): Designed for low-to-medium FoV headsets (<= 90 degrees).
+  - Note: We initially tried placing the console board floating 2.4 meters away, 
+    but it needed changing (moved to 2.8 meters and scaled down to 85%) to fit 
+    comfortably in standard headset screens and desktop views.
+  - Side HUD panels are mounted close to the left/right borders of the board 
+    to remain easily visible within micro-movements of the player's view.
 * Comfort: Stationary, seated experience. The static grid provides a strong spatial 
   anchor, preventing motion sickness.
 
@@ -25,52 +28,60 @@ player must "deactivate" them by looking directly at them.
 --------------------------------------------------------------------------------
 * Background: A dark, starless void with a subtle horizontal grid pattern on the 
   floor and ceiling to establish depth.
-* Console / Grid: A metallic dark gray panel floating 2.5 meters in front of the 
+* Console / Grid: A metallic dark gray panel floating 2.8 meters in front of the 
   player, tilted slightly upward (about 10 degrees) to meet the player's natural 
-  resting gaze.
+  resting view.
+* Side HUD Panels: Nested directly next to the board borders. Left panel displays 
+  Score & Best, right panel displays Integrity/Lives.
 * Ports: 9 circular indentations arranged in a 3x3 grid on the panel.
 * Cores: Cylindrical capsules that rise from the ports. They glow with an intense, 
   pulsing color:
-    - Pink: Standard Core (1 point)
-    - Green: Power Core (3 points, pops up faster)
-    - Orange: Hazard Core (deducts 1 life if gazed at!)
+    - Pink: Standard Core (1 point; costs 1 life if missed)
+    - Green: Power Core (3 points, pops up faster; costs 1 life if missed)
+    - Orange: Hazard Core (deducts 1 life if clicked/triggered! Safe to let it retreat)
+      - Note: We initially tried deducting life just by looking at a hazard core, 
+        but it was frustrating and needed changing to require deactivating it to 
+        penalize the player.
 
 4. CORE GAMEPLAY LOOP
 --------------------------------------------------------------------------------
-1. Start Screen: Player faces a large glowing "START" button. They look at it for 
-   1 second (gaze fuse) to begin.
+1. Start Screen: Player faces a large glowing "START" button. They click or pull 
+   their trigger to begin.
+   - Note: We initially tried gaze-fusing on start buttons, but it needed changing 
+     to direct clicks/triggers to feel more responsive.
 2. Active State: A random port spawns a Core. A ticking sound speed increases as 
    time runs out.
-3. Player Action: Player rotates their head to look at the Core. The cursor fuse 
-   animates (fills up).
-4. Success: If the fuse fills before the Core retreats (time limit starts at 1.5s 
-   and decreases as score climbs):
-     - Play a crisp "zap" synth sound.
-     - Core retreats.
-     - Add points to total score.
-5. Failure: If the Core retreats before being zapped, play a low-pitched buzz and 
-   lose 1 life.
+3. Player Action: Player aims at the Core with a VR controller (trigger to zap) 
+   or desktop mouse (click to zap).
+4. Success: If the core is zapped before it retreats:
+     - Play a chord chime hit synth sound and a laser shoot sound.
+     - Play a colored expanding whack ripple ring around the node.
+     - Core retreats. Add points to total score.
+5. Failure: If a Standard or Power core retreats undetected:
+     - Play a descending miss sweep sound and flash the console red.
+     - Play a red expanding miss ring around the node.
+     - Lose 1 life.
 6. Game Over: Occurs when lives reach 0 (start with 3). Display final score, high 
-   score, and a "RESTART" button.
+   score, and a "RESTART" button (click/trigger to reboot).
 
 5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
 --------------------------------------------------------------------------------
-* Reticle:
-  `<a-camera>`
-    `<a-cursor fuse="true" fuse-timeout="300" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: cyan; shader: flat"></a-cursor>`
-  `</a-camera>`
+* Scene-Level Click Raycaster (Desktop fallback):
+  `<a-scene cursor="rayOrigin: mouse" raycaster="objects: .target">`
+
+* VR Tracked Controllers:
+  `<a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .target; far: 5; showLine: true;"></a-entity>`
+  `<a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .target; far: 5; showLine: true;"></a-entity>`
 
 * Ports/Cores Structure:
   Represent the grid with a set of 9 static parent entities (the ports). Inside each
-  parent, place a child entity (the core cylinder). 
-  Control visibility/height via animation components, e.g.:
-  `<a-cylinder class="target" position="0 -0.5 0" animation__pop="property: position; to: 0 0.2 0; dur: 200; startEvents: pop" ...>`
+  parent, place a child entity (the core cylinder) and two flat rings for whack/miss 
+  animations:
+  `<a-ring class="ripple-ring" visible="false" animation__scale="startEvents: whack" ...>`
+  `<a-ring class="miss-ring" visible="false" animation__scale="startEvents: miss" ...>`
 
 * Scripting Logic:
-  - Keep a single JavaScript file managing state: `score`, `lives`, `activeTargetIndex`, and `gameActive`.
-  - Use `document.querySelectorAll('.target')` to grab references.
-  - Implement a game loop that triggers a random target using CustomEvents:
-    `targetEl.dispatchEvent(new CustomEvent('pop'))`
-  - Listen for the `click` event generated by A-Frame's gaze-cursor:
-    `targetEl.addEventListener('click', (e) => { ... })`
-  - Automatically retract the core if a timer expires before it is clicked.
+  - Keep a single JavaScript file managing state: `score`, `lives`, and `gameActive`.
+  - Use `leftHand.addEventListener('controllerconnected', ...)` to switch texts and 
+    adapt instruction prompts dynamically when controllers are in use.
+  - Play custom AudioContext synth notes on laser shots, zaps, misses, and alerts.
