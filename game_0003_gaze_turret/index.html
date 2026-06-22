@@ -127,9 +127,15 @@
             <!-- Dynamic Star Particles (Container for drifting starfield effect) -->
             <a-entity id="star-particle-container"></a-entity>
 
-            <!-- Left and Right Plasma Laser Lines (Drawn dynamically in JS using the 'line' component) -->
-            <a-entity id="laser-left" line="start: -0.7 0.6 -1.1; end: 0 0 -10; color: #39ff14; opacity: 0.9" visible="false"></a-entity>
-            <a-entity id="laser-right" line="start: 0.7 0.6 -1.1; end: 0 0 -10; color: #39ff14; opacity: 0.9" visible="false"></a-entity>
+            <!-- Left and Right Plasma Laser Cylinder Beams (Double layered for extra neon glow) -->
+            <a-entity id="laser-left-container" visible="false">
+                <a-cylinder radius="0.045" color="#39ff14" material="shader: flat; transparent: true; opacity: 0.3"></a-cylinder>
+                <a-cylinder radius="0.015" color="#ffffff" material="shader: flat; transparent: true; opacity: 0.9"></a-cylinder>
+            </a-entity>
+            <a-entity id="laser-right-container" visible="false">
+                <a-cylinder radius="0.045" color="#39ff14" material="shader: flat; transparent: true; opacity: 0.3"></a-cylinder>
+                <a-cylinder radius="0.015" color="#ffffff" material="shader: flat; transparent: true; opacity: 0.9"></a-cylinder>
+            </a-entity>
 
             <!-- 3D VR Cockpit Console -->
             <a-entity id="cockpit-3d" position="0 0.8 0">
