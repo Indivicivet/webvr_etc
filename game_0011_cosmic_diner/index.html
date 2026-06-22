@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cosmic Diner - VR Bartender Arcade</title>
+    <meta name="description" content="Mix neon cocktails in deep space! Serve alien customers using color matching formulas in WebVR.">
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Game Styling -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN (Version 1.6.0) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D HTML Dashboard overlay -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Game Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">Space Arcade</div>
+            <h1>Cosmic Diner</h1>
+            <p class="subtitle">Welcome to the Neon Orbit Bar, bartender! Alien customers will arrive at the counter and order glowing neon cocktails. Mix primary taps (Red, Green, Blue) to matching formulas and slide them across the bar!</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="color-swatch swatch-purple"></div>
+                    <div class="guide-text">
+                        <h4>Purple Drink</h4>
+                        <p>Red + Blue</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-cyan"></div>
+                    <div class="guide-text">
+                        <h4>Cyan Drink</h4>
+                        <p>Green + Blue</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-yellow"></div>
+                    <div class="guide-text">
+                        <h4>Yellow Drink</h4>
+                        <p>Red + Green</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-white"></div>
+                    <div class="guide-text">
+                        <h4>White Cosmic</h4>
+                        <p>Red + Green + Blue</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-primary">Open Bar</button>
+            <div class="status-msg">Click Open Bar or select the neon sign in VR</div>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-red), var(--neon-purple)); box-shadow: 0 0 15px var(--neon-red-glow);">Bar Closed</div>
+            <h1>Shift Ended</h1>
+            <p class="subtitle">Too many unsatisfied customers walked out.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Cash Earned:</span>
+                    <span id="stat-final-cash" class="stats-value">$0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Customers Served:</span>
+                    <span id="stat-final-served" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Personal Best:</span>
+                    <span id="stat-high-score" class="stats-value">$0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🎉 NEW SHIFT RECORD! 🎉</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-primary">Reopen Bar</button>
+        </div>
+    </div>
+
+    <!-- HUD Overlay for desktop screens -->
+    <div id="hud" class="hud-container hidden">
+        <div class="hud-left">
+            <div class="hud-panel">
+                <span class="hud-label">Cash Register</span>
+                <span id="hud-cash-val" class="hud-value">$0</span>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-label">Satisfied</span>
+                <span id="hud-customers-val" class="hud-value">0</span>
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="hud-panel">
+                <span class="hud-label">Bar Reputation</span>
+                <span id="hud-lives-val" class="hud-value">❤❤❤</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Instruction Card -->
+    <div id="help-card" class="help-card hidden">
+        <h5>Bar Instructions</h5>
+        <ul>
+            <li>Click <b>Cup Dispenser</b> (left) to get a glass.</li>
+            <li>Click <b>RGB Taps</b> to pour liquids into the glass.</li>
+            <li>Click <b>Glass</b> to select it, then click an <b>Alien</b> to serve!</li>
+            <li>Click <b>Disposal Drain</b> (right) to empty your current glass.</li>
+        </ul>
+    </div>
+
+    <!-- 3D Scene Viewport -->
+    <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+        <a-assets>
+            <!-- No heavy external assets; using generated geometries/materials for faster rendering -->
+        </a-assets>
+
+        <!-- Lighting -->
+        <a-entity light="type: ambient; color: #100b26; intensity: 0.6"></a-entity>
+        <a-entity light="type: directional; color: #bca0ff; intensity: 0.9; castShadow: true" position="2 4 1.5"></a-entity>
+        <a-entity id="ambient-neon-glow" light="type: point; color: #d300ff; intensity: 0.4; distance: 5" position="0 1.2 -1"></a-entity>
+
+        <!-- Space sky with tiny stars -->
+        <a-sky color="#04020a"></a-sky>
+        
+        <!-- Deep Space background decoration -->
+        <a-entity id="space-dust-container"></a-entity>
+
+        <!-- Grid Floor -->
+        <a-plane position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#d300ff" wireframe="true" material="shader: flat; opacity: 0.05"></a-plane>
+
+        <!-- ========================================== -->
+        <!-- THE BAR ENVIRONMENT -->
+        <!-- ========================================== -->
+        
+        <!-- Bar Counter -->
+        <a-box id="bar-counter"
+               position="0 0.85 -0.6"
+               width="2.4"
+               height="0.9"
+               depth="0.75"
+               color="#12101b"
+               material="roughness: 0.15; metalness: 0.85; sphericalEnvMap: #sky"
+               shadow="cast: true; receive: true">
+            <!-- Chrome Front Edge Accent -->
+            <a-box color="#ffffff" position="0 0.45 0.38" width="2.4" height="0.04" depth="0.02" material="roughness: 0.05; metalness: 0.95"></a-box>
+            <!-- Glowing Neon Line Underneath Counter Edge -->
+            <a-box color="#d300ff" position="0 0.42 0.385" width="2.4" height="0.01" depth="0.01" material="shader: flat; emissive: #d300ff; emissiveIntensity: 1.0"></a-box>
+        </a-box>
+
+        <!-- Glass Cup Dispenser (Left Side of Counter) -->
+        <a-entity id="cup-dispenser" class="target" position="-0.7 0.91 -0.5">
+            <!-- Base Ring -->
+            <a-cylinder radius="0.1" height="0.02" color="#ffffff" material="roughness: 0.2; metalness: 0.8"></a-cylinder>
+            <!-- Stack of transparent tubes representing cup silhouettes -->
+            <a-cylinder radius="0.07" height="0.25" position="0 0.13 0" color="#00f3ff" material="wireframe: true; opacity: 0.3; shader: flat"></a-cylinder>
+            <a-text value="CUPS" align="center" color="#ffffff" width="1.2" position="0 0.28 0" rotation="15 0 0" material="shader: flat;"></a-text>
+        </a-entity>
+
+        <!-- Disposal Drain (Right Side of Counter) -->
+        <a-entity id="disposal-drain" class="target" position="0.7 0.905 -0.5">
+            <!-- Metal Ring -->
+            <a-cylinder radius="0.1" height="0.01" color="#ffffff" material="roughness: 0.1; metalness: 0.9"></a-cylinder>
+            <!-- Drain Grid -->
+            <a-cylinder radius="0.09" height="0.011" position="0 0 0" color="#ff0055" wireframe="true" material="shader: flat; opacity: 0.8"></a-cylinder>
+            <!-- Glowing Grid Ring -->
+            <a-ring radius-inner="0.09" radius-outer="0.1" rotation="90 0 0" position="0 0.007 0" color="#ff0055" material="shader: flat; emissive: #ff0055; emissiveIntensity: 0.8"></a-ring>
+            <a-text value="DRAIN" align="center" color="#ffffff" width="1.2" position="0 0.1 0" rotation="15 0 0" material="shader: flat;"></a-text>
+        </a-entity>
+
+        <!-- Mixing Pad (Center of Counter) -->
+        <a-entity id="mixing-pad-station" position="0 0.91 -0.45">
+            <!-- Circular Metallic Plate -->
+            <a-cylinder radius="0.13" height="0.01" color="#ffffff" material="roughness: 0.2; metalness: 0.8"></a-cylinder>
+            <!-- Glowing purple ring around pad -->
+            <a-ring radius-inner="0.125" radius-outer="0.13" rotation="90 0 0" position="0 0.007 0" color="#d300ff" material="shader: flat; emissive: #d300ff; emissiveIntensity: 0.7"></a-ring>
+            
+            <!-- Interactive Mixer Cup: starts hidden, toggled to visible when cup spawned -->
+            <a-cylinder id="active-cup"
+                        class="target"
+                        position="0 0.12 0"
+                        radius="0.065"
+                        height="0.22"
+                        color="#ffffff"
+                        material="opacity: 0.25; transparent: true; roughness: 0.1; metalness: 0.95; side: double"
+                        visible="false">
+                <!-- Selection Outline Ring (Glow indicator when selected) -->
+                <a-ring id="cup-selection-ring" radius-inner="0.075" radius-outer="0.082" rotation="90 0 0" position="0 -0.108 0" color="#00f3ff" material="shader: flat; opacity: 0" visible="false"></a-ring>
+                
+                <!-- Inner liquid primitive -->
+                <a-cylinder id="active-cup-liquid"
+                            position="0 -0.1 0"
+                            radius="0.06"
+                            height="0.01"
+                            color="#e2e8f0"
+                            material="roughness: 0.05; metalness: 0.3; opacity: 0; transparent: true; emissiveIntensity: 0"
+                            visible="false">
+                </a-cylinder>
+            </a-cylinder>
+        </a-entity>
+
+        <!-- ========================================== -->
+        <!-- DISPENSER STATION (RGB TAPS) -->
+        <!-- ========================================== -->
+        
+        <a-entity id="dispenser-station" position="0 1.25 -0.7">
+            
+            <!-- Back Panel Support Structure -->
+            <a-box color="#1b172a" width="1.0" height="0.4" depth="0.06" position="0 0.1 -0.05" material="roughness: 0.4; metalness: 0.7"></a-box>
+            <!-- Neon Accent Border on panel -->
+            <a-box color="#00f3ff" width="1.02" height="0.02" depth="0.07" position="0 0.3 -0.05" material="shader: flat; emissive: #00f3ff"></a-box>
+            <a-box color="#00f3ff" width="1.02" height="0.02" depth="0.07" position="0 -0.1 -0.05" material="shader: flat; emissive: #00f3ff"></a-box>
+
+            <!-- TAPs Spouts & Tube Containers -->
+            
+            <!-- Red Tap (Left) -->
+            <a-entity id="station-red" position="-0.28 0 0">
+                <!-- Glowing Tube container -->
+                <a-cylinder radius="0.03" height="0.25" color="#ff0055" material="opacity: 0.35; transparent: true; emissive: #ff0055; emissiveIntensity: 0.6"></a-cylinder>
+                <a-cylinder radius="0.015" height="0.2" position="0 0 0" color="#ff0055" material="roughness: 0.1; metalness: 0.9; emissive: #ff0055; emissiveIntensity: 0.8"></a-cylinder>
+                <!-- Clickable dispenser button/lever -->
+                <a-box id="tap-red" class="target" position="0 0.15 0.04" width="0.06" height="0.06" depth="0.06" color="#ff0055" material="roughness: 0.1; metalness: 0.9; emissive: #ff0055; emissiveIntensity: 0.4">
+                    <a-text value="R" align="center" color="#ffffff" width="1.4" position="0 0 0.032" material="shader: flat;"></a-text>
+                </a-box>
+                <!-- Liquid spout nozzle -->
+                <a-cylinder radius="0.008" height="0.05" position="0 -0.15 0" color="#a1a1a1" material="roughness: 0.1; metalness: 0.9"></a-cylinder>
+                <!-- Flow Stream cylinder (initially hidden) -->
+                <a-cylinder id="pour-red" position="0.28 -0.23 0.25" rotation="20 0 -45" radius="0.005" height="0.4" color="#ff0055" material="shader: flat; opacity: 0.8" visible="false"></a-cylinder>
+            </a-entity>
+
+            <!-- Green Tap (Center) -->
+            <a-entity id="station-green" position="0 0 0">
+                <!-- Glowing Tube container -->
+                <a-cylinder radius="0.03" height="0.25" color="#00ff66" material="opacity: 0.35; transparent: true; emissive: #00ff66; emissiveIntensity: 0.6"></a-cylinder>
+                <a-cylinder radius="0.015" height="0.2" position="0 0 0" color="#00ff66" material="roughness: 0.1; metalness: 0.9; emissive: #00ff66; emissiveIntensity: 0.8"></a-cylinder>
+                <!-- Clickable dispenser button/lever -->
+                <a-box id="tap-green" class="target" position="0 0.15 0.04" width="0.06" height="0.06" depth="0.06" color="#00ff66" material="roughness: 0.1; metalness: 0.9; emissive: #00ff66; emissiveIntensity: 0.4">
+                    <a-text value="G" align="center" color="#ffffff" width="1.4" position="0 0 0.032" material="shader: flat;"></a-text>
+                </a-box>
+                <!-- Liquid spout nozzle -->
+                <a-cylinder radius="0.008" height="0.05" position="0 -0.15 0" color="#a1a1a1" material="roughness: 0.1; metalness: 0.9"></a-cylinder>
+                <!-- Flow Stream cylinder (initially hidden) -->
+                <a-cylinder id="pour-green" position="0 -0.23 0.25" rotation="20 0 0" radius="0.005" height="0.4" color="#00ff66" material="shader: flat; opacity: 0.8" visible="false"></a-cylinder>
+            </a-entity>
+
+            <!-- Blue Tap (Right) -->
+            <a-entity id="station-blue" position="0.28 0 0">
+                <!-- Glowing Tube container -->
+                <a-cylinder radius="0.03" height="0.25" color="#0066ff" material="opacity: 0.35; transparent: true; emissive: #0066ff; emissiveIntensity: 0.6"></a-cylinder>
+                <a-cylinder radius="0.015" height="0.2" position="0 0 0" color="#0066ff" material="roughness: 0.1; metalness: 0.9; emissive: #0066ff; emissiveIntensity: 0.8"></a-cylinder>
+                <!-- Clickable dispenser button/lever -->
+                <a-box id="tap-blue" class="target" position="0 0.15 0.04" width="0.06" height="0.06" depth="0.06" color="#0066ff" material="roughness: 0.1; metalness: 0.9; emissive: #0066ff; emissiveIntensity: 0.4">
+                    <a-text value="B" align="center" color="#ffffff" width="1.4" position="0 0 0.032" material="shader: flat;"></a-text>
+                </a-box>
+                <!-- Liquid spout nozzle -->
+                <a-cylinder radius="0.008" height="0.05" position="0 -0.15 0" color="#a1a1a1" material="roughness: 0.1; metalness: 0.9"></a-cylinder>
+                <!-- Flow Stream cylinder (initially hidden) -->
+                <a-cylinder id="pour-blue" position="-0.28 -0.23 0.25" rotation="20 0 45" radius="0.005" height="0.4" color="#0066ff" material="shader: flat; opacity: 0.8" visible="false"></a-cylinder>
+            </a-entity>
+        </a-entity>
+
+        <!-- ========================================== -->
+        <!-- CUSTOMER STOOLS & FLOATING ALIEN CUSTOMERS -->
+        <!-- ========================================== -->
+        
+        <!-- Three Customer Positions (arranged in 80-degree FoV across counter) -->
+        
+        <!-- Left Stool & Customer Space -->
+        <a-entity id="station-customer-0" position="-0.75 0 -1.5">
+            <!-- Stool -->
+            <a-cylinder radius="0.08" height="0.6" color="#3c384a" material="roughness: 0.5" position="0 0.3 0"></a-cylinder>
+            <a-cylinder radius="0.09" height="0.03" color="#ffff00" material="emissive: #ffff00; emissiveIntensity: 0.3" position="0 0.6 0"></a-cylinder>
+            
+            <!-- Customer Entity Container (controlled in app.js/diner-animate) -->
+            <a-entity id="customer-0" position="0 1.25 0" visible="false">
+                <!-- Alien Shape (e.g. Floating Torus / Blob) -->
+                <a-octahedron id="customer-0-body" class="target" radius="0.14" color="#d300ff" material="roughness: 0.2; metalness: 0.7"></a-octahedron>
+                <!-- Glowing eyes/antennas -->
+                <a-sphere position="-0.04 0.05 0.11" radius="0.02" color="#00f3ff" material="shader: flat;"></a-sphere>
+                <a-sphere position="0.04 0.05 0.11" radius="0.02" color="#00f3ff" material="shader: flat;"></a-sphere>
+                
+                <!-- Holographic Order Bubble (above head) -->
+                <a-entity id="customer-0-order" position="0 0.42 0">
+                    <!-- Semi-transparent bubble sphere -->
+                    <a-sphere id="customer-0-bubble" radius="0.13" color="#ffffff" material="opacity: 0.3; transparent: true; shader: flat"></a-sphere>
+                    <!-- Small inner color sphere showing target color -->
+                    <a-sphere id="customer-0-bubble-color" radius="0.07" position="0 0 0" color="#ffffff" material="shader: flat; emissive: #ffffff; emissiveIntensity: 0.7"></a-sphere>
+                    <!-- Float text helper -->
+                    <a-text id="customer-0-bubble-text" value="PURPLE" align="center" color="#ffffff" width="1.6" position="0 0.2 0" material="shader: flat;"></a-text>
+                </a-entity>
+
+                <!-- Floating Patience Bar -->
+                <a-entity id="customer-0-timer" position="0 -0.22 0.05">
+                    <a-plane width="0.25" height="0.03" color="#1a162b" material="opacity: 0.7; transparent: true"></a-plane>
+                    <a-plane id="customer-0-patience" width="0.25" height="0.03" position="0 0 0.005" color="#00ff66" material="shader: flat" scale="1 1 1"></a-plane>
+                </a-entity>
+            </a-entity>
+        </a-entity>
+
+        <!-- Center Stool & Customer Space -->
+        <a-entity id="station-customer-1" position="0 0 -1.65">
+            <!-- Stool -->
+            <a-cylinder radius="0.08" height="0.6" color="#3c384a" material="roughness: 0.5" position="0 0.3 0"></a-cylinder>
+            <a-cylinder radius="0.09" height="0.03" color="#ffff00" material="emissive: #ffff00; emissiveIntensity: 0.3" position="0 0.6 0"></a-cylinder>
+            
+            <!-- Customer Entity Container -->
+            <a-entity id="customer-1" position="0 1.25 0" visible="false">
+                <!-- Alien Shape (e.g. Floating sphere/capsule hybrid) -->
+                <a-sphere id="customer-1-body" class="target" radius="0.14" color="#00ff66" material="roughness: 0.2; metalness: 0.7" scale="1 1.2 1"></a-sphere>
+                <a-sphere position="-0.04 0.05 0.11" radius="0.02" color="#ff0055" material="shader: flat;"></a-sphere>
+                <a-sphere position="0.04 0.05 0.11" radius="0.02" color="#ff0055" material="shader: flat;"></a-sphere>
+                
+                <!-- Holographic Order Bubble -->
+                <a-entity id="customer-1-order" position="0 0.45 0">
+                    <a-sphere id="customer-1-bubble" radius="0.13" color="#ffffff" material="opacity: 0.3; transparent: true; shader: flat"></a-sphere>
+                    <a-sphere id="customer-1-bubble-color" radius="0.07" color="#ffffff" material="shader: flat; emissive: #ffffff; emissiveIntensity: 0.7"></a-sphere>
+                    <a-text id="customer-1-bubble-text" value="CYAN" align="center" color="#ffffff" width="1.6" position="0 0.2 0" material="shader: flat;"></a-text>
+                </a-entity>
+
+                <!-- Floating Patience Bar -->
+                <a-entity id="customer-1-timer" position="0 -0.24 0.05">
+                    <a-plane width="0.25" height="0.03" color="#1a162b" material="opacity: 0.7; transparent: true"></a-plane>
+                    <a-plane id="customer-1-patience" width="0.25" height="0.03" position="0 0 0.005" color="#00ff66" material="shader: flat" scale="1 1 1"></a-plane>
+                </a-entity>
+            </a-entity>
+        </a-entity>
+
+        <!-- Right Stool & Customer Space -->
+        <a-entity id="station-customer-2" position="0.75 0 -1.5">
+            <!-- Stool -->
+            <a-cylinder radius="0.08" height="0.6" color="#3c384a" material="roughness: 0.5" position="0 0.3 0"></a-cylinder>
+            <a-cylinder radius="0.09" height="0.03" color="#ffff00" material="emissive: #ffff00; emissiveIntensity: 0.3" position="0 0.6 0"></a-cylinder>
+            
+            <!-- Customer Entity Container -->
+            <a-entity id="customer-2" position="0 1.25 0" visible="false">
+                <!-- Alien Shape (e.g. Floating Torus knot) -->
+                <a-torus-knot id="customer-2-body" class="target" radius="0.08" radius-tubular="0.02" color="#0066ff" material="roughness: 0.2; metalness: 0.7"></a-torus-knot>
+                <a-sphere position="-0.04 0.05 0.11" radius="0.02" color="#ffff00" material="shader: flat;"></a-sphere>
+                <a-sphere position="0.04 0.05 0.11" radius="0.02" color="#ffff00" material="shader: flat;"></a-sphere>
+                
+                <!-- Holographic Order Bubble -->
+                <a-entity id="customer-2-order" position="0 0.42 0">
+                    <a-sphere id="customer-2-bubble" radius="0.13" color="#ffffff" material="opacity: 0.3; transparent: true; shader: flat"></a-sphere>
+                    <a-sphere id="customer-2-bubble-color" radius="0.07" color="#ffffff" material="shader: flat; emissive: #ffffff; emissiveIntensity: 0.7"></a-sphere>
+                    <a-text id="customer-2-bubble-text" value="YELLOW" align="center" color="#ffffff" width="1.6" position="0 0.2 0" material="shader: flat;"></a-text>
+                </a-entity>
+
+                <!-- Floating Patience Bar -->
+                <a-entity id="customer-2-timer" position="0 -0.22 0.05">
+                    <a-plane width="0.25" height="0.03" color="#1a162b" material="opacity: 0.7; transparent: true"></a-plane>
+                    <a-plane id="customer-2-patience" width="0.25" height="0.03" position="0 0 0.005" color="#00ff66" material="shader: flat" scale="1 1 1"></a-plane>
+                </a-entity>
+            </a-entity>
+        </a-entity>
+
+        <!-- Temporary Sliding Cup Entity (used to animate the cup moving to a stool) -->
+        <a-cylinder id="sliding-cup"
+                    position="0 0 0"
+                    radius="0.065"
+                    height="0.22"
+                    color="#ffffff"
+                    material="opacity: 0.75; transparent: true; roughness: 0.1; metalness: 0.95; side: double"
+                    visible="false">
+            <a-cylinder id="sliding-cup-liquid"
+                        position="0 -0.1 0"
+                        radius="0.06"
+                        height="0.18"
+                        color="#ffffff"
+                        material="roughness: 0.05; metalness: 0.3; opacity: 0.85; transparent: false; shader: flat; emissiveIntensity: 0.5"
+                        visible="true">
+            </a-cylinder>
+        </a-cylinder>
+
+        <!-- ========================================== -->
+        <!-- VR IN-SCENE NEON CONTROL SIGNAGES & HUD -->
+        <!-- ========================================== -->
+
+        <a-entity id="vr-ui-container">
+            <!-- 3D "OPEN BAR" Start Sign (floating above counter) -->
+            <a-box id="vr-btn-start"
+                   class="target"
+                   position="0 1.45 -1.1"
+                   width="0.8"
+                   height="0.28"
+                   depth="0.06"
+                   color="#120e26"
+                   material="roughness: 0.4; metalness: 0.8; strokeColor: #d300ff"
+                   animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
+                   animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+                <!-- Glowing purple outline -->
+                <a-box color="#d300ff" position="0 0 0" width="0.82" height="0.30" depth="0.01" material="shader: flat; wireframe: true; opacity: 0.8"></a-box>
+                <!-- Neon Sign Text -->
+                <a-text value="OPEN BAR" align="center" color="#ffffff" width="3.2" font="kandoo" position="0 0 0.035" material="shader: flat;"></a-text>
+            </a-box>
+
+            <!-- 3D "RELOAD BAR" Restart Sign (starts hidden) -->
+            <a-box id="vr-btn-restart"
+                   class="target"
+                   position="0 1.45 -1.1"
+                   width="0.95"
+                   height="0.32"
+                   depth="0.06"
+                   color="#120e26"
+                   material="roughness: 0.4; metalness: 0.8"
+                   scale="0.001 0.001 0.001"
+                   visible="false"
+                   animation__hover="property: scale; to: 1.05 1.05 1.05; dur: 200; startEvents: mouseenter"
+                   animation__leave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+                <a-box color="#ff0055" position="0 0 0" width="0.97" height="0.34" depth="0.01" material="shader: flat; wireframe: true; opacity: 0.8"></a-box>
+                <a-text value="RELOAD BAR" align="center" color="#ffffff" width="3.4" font="kandoo" position="0 0 0.035" material="shader: flat;"></a-text>
+            </a-box>
+
+            <!-- VR Floating HUD Panel (starts hidden) -->
+            <a-entity id="vr-hud" position="0 2.1 -1.45" rotation="18 0 0" visible="false">
+                <a-plane width="1.2" height="0.5" color="#0c0b13" material="opacity: 0.8; transparent: true; roughness: 0.5" position="0 0 -0.01"></a-plane>
+                <!-- Border Neon -->
+                <a-ring radius-inner="0.59" radius-outer="0.6" rotation="0 0 90" position="0 0 0" color="#d300ff" scale="1 0.42 1" material="shader: flat; opacity: 0.5"></a-ring>
+                <!-- Text elements -->
+                <a-text id="vr-hud-cash" value="CASH: $0" align="center" color="#00ff66" width="3.4" font="kandoo" position="0 0.14 0.01" material="shader: flat;"></a-text>
+                <a-text id="vr-hud-lives" value="BAR STATUS: OK" align="center" color="#ff0055" width="2.8" font="kandoo" position="0 -0.02 0.01" material="shader: flat;"></a-text>
+                <a-text id="vr-hud-status" value="ACTIVE DRIFT" align="center" color="#00f3ff" width="2.5" font="kandoo" position="0 -0.16 0.01" material="shader: flat;"></a-text>
+            </a-entity>
+        </a-entity>
+
+        <!-- ========================================== -->
+        <!-- PLAYER RIG & CAMERA CONTROLS -->
+        <!-- ========================================== -->
+        
+        <a-entity id="rig" position="0 0 0">
+            <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false"></a-camera>
+            
+            <!-- VR Controllers with raycaster lines matching bar's neon theme -->
+            <a-entity id="left-controller" laser-controls="hand: left" raycaster="objects: .target; far: 50" line="color: #d300ff; opacity: 0.8"></a-entity>
+            <a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .target; far: 50" line="color: #d300ff; opacity: 0.8"></a-entity>
+        </a-entity>
+
+        <!-- Mouse Cursor for desktop screens -->
+        <a-entity id="mouse-cursor" cursor="rayOrigin: mouse" raycaster="objects: .target"></a-entity>
+    </a-scene>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
