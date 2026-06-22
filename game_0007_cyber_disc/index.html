@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cyber Disc - WebXR Sports Grid</title>
+    <meta name="description" content="An immersive WebXR disc-throwing game. Stand in a futuristic neon court, grab and throw glowing cyber-discs, and smash targets on the back wall.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- A-Frame Library (Stable WebXR support) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D Overlay UI Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Screen -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">WebXR Arcade</div>
+            <h1>Cyber Disc</h1>
+            <p class="subtitle">Step onto the neon sports grid. Throw glowing cyber-discs to smash panels and moving drone targets on the back wall before the timer expires.</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-panel"></div>
+                    <div class="guide-item-text">
+                        <h3>Static Grid Panels (100 Pts)</h3>
+                        <p>Standard neon wall targets. Clear them to trigger new waves.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-drone"></div>
+                    <div class="guide-item-text">
+                        <h3>Flying Drones (300 Pts)</h3>
+                        <p>Fast-moving targets sliding horizontally along the back wall.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-core"></div>
+                    <div class="guide-item-text">
+                        <h3>Green Core (Explosive)</h3>
+                        <p>Shattering this triggers a blast wave that clears adjacent targets.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-color-indicator indicator-hazard"></div>
+                    <div class="guide-item-text">
+                        <h3>Hazard Node (-200 Pts)</h3>
+                        <p>Red warning target. Hitting it deducts points and freezes the dispenser.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-desc">
+                <p><strong>VR Controls:</strong> Squeeze trigger/grip near dispenser to grab a disc. Swing arm and release to throw with full velocity.</p>
+                <p style="margin-top: 4px;"><strong>Desktop Controls:</strong> Click dispenser to load. Click and hold to charge throw power, then release to launch towards the cursor.</p>
+            </div>
+
+            <button id="btn-start" class="btn btn-blue">Enter Court</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-pink), var(--neon-orange)); box-shadow: 0 0 20px var(--neon-pink-glow);">Match Over</div>
+            <h1>Match Results</h1>
+            <p class="subtitle">Your round on the grid is complete.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Max Combo Multiplier:</span>
+                    <span id="stat-max-combo" class="stats-value">x1</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Personal Best:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🎉 NEW PERSONAL RECORD! 🎉</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-blue">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Active HUD (Visible in-game) -->
+    <div id="hud" class="hud-container hidden">
+        <!-- Score & Combo Panel -->
+        <div class="hud-panel" style="min-width: 120px;">
+            <span class="hud-label">Score</span>
+            <span id="hud-score-val" class="hud-value">000</span>
+            <span id="hud-combo-val" class="combo-badge">x1</span>
+        </div>
+
+        <!-- Center Power Meter (mainly for Desktop charge visualizer) -->
+        <div class="hud-center">
+            <div id="hud-power-panel" class="hud-power-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="hud-label" style="font-size: 0.55rem;">Throw Power</span>
+                    <span id="power-percent" style="font-family: monospace; font-size: 0.7rem; font-weight: 800; color: var(--neon-blue);">0%</span>
+                </div>
+                <div class="meter-container">
+                    <div id="power-fill" class="meter-fill"></div>
+                </div>
+            </div>
+            <button id="btn-hud-exit" class="mode-toggle-btn">Exit to Menu</button>
+        </div>
+
+        <!-- Timer Panel -->
+        <div class="hud-panel" style="min-width: 120px; align-items: flex-end;">
+            <span class="hud-label">Time Remaining</span>
+            <span id="hud-timer-val" class="hud-value timer-pulse">1:00</span>
+        </div>
+    </div>
+
+    <!-- A-Frame 3D Scene Viewport -->
+    <div id="scene-container">
+        <a-scene embedded vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true; sortObjects: true;">
+            
+            <!-- Asset Preloading -->
+            <a-assets>
+                <!-- Materials and mixins can be added here if needed -->
+            </a-assets>
+
+            <!-- Lighting -->
+            <a-entity light="type: ambient; color: #110e25; intensity: 0.6"></a-entity>
+            <a-entity light="type: directional; color: #00d4ff; intensity: 0.8" position="-4 6 -2"></a-entity>
+            <a-entity light="type: directional; color: #ff6a00; intensity: 0.6" position="4 6 -5"></a-entity>
+
+            <!-- Immersive Racquetball Court Arena (Dimensions: 8m wide, 5m high, 12m deep) -->
+            <!-- We center the player at Z = 0. Target Wall is at Z = -10m. Rear wall is at Z = 2m. -->
+            <a-sky color="#030206"></a-sky>
+            
+            <!-- Floor grid -->
+            <a-plane position="0 0 -4" rotation="-90 0 0" width="8" height="12" color="#00d4ff" wireframe="true" material="shader: flat; opacity: 0.08"></a-plane>
+            <a-plane position="0 0.001 -4" rotation="-90 0 0" width="8" height="12" color="#030206" material="shader: flat; roughness: 0.9; metalness: 0.1"></a-plane>
+            
+            <!-- Ceiling grid -->
+            <a-plane position="0 5 -4" rotation="90 0 0" width="8" height="12" color="#00d4ff" wireframe="true" material="shader: flat; opacity: 0.05"></a-plane>
+            
+            <!-- Side Walls (Dark metal with neon grid stripes) -->
+            <a-plane id="left-wall-plane" position="-4 2.5 -4" rotation="0 90 0" width="12" height="5" color="#ff6a00" wireframe="true" material="shader: flat; opacity: 0.06"></a-plane>
+            <a-plane id="right-wall-plane" position="4 2.5 -4" rotation="0 -90 0" width="12" height="5" color="#ff6a00" wireframe="true" material="shader: flat; opacity: 0.06"></a-plane>
+
+            <!-- Back Wall Frame (Solid boundary) -->
+            <a-plane position="0 2.5 -10" rotation="0 0 0" width="8" height="5" color="#07050e" material="roughness: 0.8; metalness: 0.4"></a-plane>
+            <a-plane position="0 2.5 -9.99" rotation="0 0 0" width="8" height="5" color="#00d4ff" wireframe="true" material="shader: flat; opacity: 0.1"></a-plane>
+
+            <!-- Player Podium / Standing boundary -->
+            <a-ring position="0 0.005 0" rotation="-90 0 0" radius-inner="0.8" radius-outer="0.85" color="#ff6a00" material="shader: flat; opacity: 0.5"></a-ring>
+            <a-circle position="0 0.003 0" rotation="-90 0 0" radius="0.8" color="#ff6a00" material="shader: flat; opacity: 0.05"></a-circle>
+            
+            <!-- Disc Dispenser Pedestal (Placed slightly forward and to the right of standard player stance) -->
+            <a-entity id="dispenser" position="0.45 0 -0.35">
+                <!-- Pedestal base column -->
+                <a-cylinder radius="0.08" height="0.8" color="#110d24" material="roughness: 0.4; metalness: 0.8" position="0 0.4 0"></a-cylinder>
+                <a-cylinder radius="0.1" height="0.04" color="#ff6a00" material="shader: flat; opacity: 0.8" position="0 0.8 0"></a-cylinder>
+                
+                <!-- Interaction anchor (invisible click target) -->
+                <a-cylinder id="dispenser-anchor" class="disc-dispenser" radius="0.25" height="0.4" position="0 0.9 0" material="opacity: 0.0; transparent: true; visible: true;"></a-cylinder>
+                
+                <!-- Floating, rotating preview disc inside dispenser -->
+                <a-entity id="dispenser-preview-disc" position="0 0.95 0" rotation="0 0 0">
+                    <a-torus radius="0.12" radius-tubular="0.015" color="#00d4ff" material="shader: flat; opacity: 0.9" rotation="90 0 0"></a-torus>
+                    <a-cylinder radius="0.09" height="0.01" color="#00d4ff" material="shader: flat; opacity: 0.3" position="0 0 0"></a-cylinder>
+                    <a-sphere radius="0.02" color="#ffffff" material="shader: flat" position="0 0.01 0"></a-sphere>
+                </a-entity>
+                
+                <!-- Text prompt for desktop users -->
+                <a-entity id="dispenser-hud-text" text="value: CLICK DISPENSER; align: center; width: 0.8; color: #00d4ff; shader: msdf;" position="0 1.25 0" rotation="0 0 0" visible="true"></a-entity>
+            </a-entity>
+
+            <!-- Spawner container for flying discs -->
+            <a-entity id="disc-container"></a-entity>
+
+            <!-- Container for target blocks, drones, and particle bursts -->
+            <a-entity id="target-container"></a-entity>
+
+            <!-- Holographic START GAME Panel for VR Users (Floating at Z = -2.5m, hidden in game) -->
+            <a-entity id="vr-ui-container" position="0 1.6 -2.5" rotation="0 0 0">
+                <!-- Backdrop panel -->
+                <a-plane width="2.0" height="1.4" color="#080613" material="opacity: 0.88; transparent: true; roughness: 0.5" position="0 0 -0.01"></a-plane>
+                <a-plane width="2.02" height="1.42" color="#00d4ff" wireframe="true" material="shader: flat; opacity: 0.4" position="0 0 -0.012"></a-plane>
+                
+                <!-- Floating UI Content -->
+                <a-entity text="value: CYBER DISC; align: center; width: 3.5; color: #ffffff; font: outfit; fontImage: https://aframe.io/a-frame/fonts/MSDF/Outfit-Bold.png; shader: msdf;" position="0 0.4 0"></a-entity>
+                
+                <!-- Start Button (holographic click target) -->
+                <a-entity id="vr-btn-start" class="vr-btn" position="0 -0.2 0.05">
+                    <a-plane width="0.9" height="0.3" color="#00d4ff" material="shader: flat; opacity: 0.8"></a-plane>
+                    <a-entity text="value: START GAME; align: center; width: 2.2; color: #030206; font: outfit; fontImage: https://aframe.io/a-frame/fonts/MSDF/Outfit-Bold.png; shader: msdf;" position="0 0 0.01"></a-entity>
+                </a-entity>
+                
+                <!-- Restart Button (initially hidden) -->
+                <a-entity id="vr-btn-restart" class="vr-btn" position="0 -0.2 0.05" visible="false">
+                    <a-plane width="0.9" height="0.3" color="#ff007f" material="shader: flat; opacity: 0.8"></a-plane>
+                    <a-entity text="value: PLAY AGAIN; align: center; width: 2.2; color: #030206; font: outfit; fontImage: https://aframe.io/a-frame/fonts/MSDF/Outfit-Bold.png; shader: msdf;" position="0 0 0.01"></a-entity>
+                </a-entity>
+
+                <a-entity id="vr-ui-text" text="value: Point laser and click START to begin.; align: center; width: 1.4; color: #9ea4c0; shader: msdf;" position="0 0.1 0"></a-entity>
+            </a-entity>
+
+            <!-- Holographic VR Head-Up Display (Only visible inside VR headset) -->
+            <!-- Placed at a comfortable offset in front of the camera, following the player's view -->
+            <a-entity id="vr-hud" position="0 2.2 -2.0" rotation="15 0 0" visible="false">
+                <a-plane width="1.6" height="0.25" color="#080613" material="opacity: 0.6; transparent: true" position="0 0 -0.01"></a-plane>
+                <!-- Score, Timer, Combo text values -->
+                <a-entity id="vr-hud-score" text="value: SCORE: 000; align: left; width: 1.6; color: #ffffff; shader: msdf;" position="-0.7 0 0.01"></a-entity>
+                <a-entity id="vr-hud-timer" text="value: TIME: 1:00; align: right; width: 1.6; color: #00d4ff; shader: msdf;" position="0.7 0 0.01"></a-entity>
+                <a-entity id="vr-hud-combo" text="value: COMBO: x1; align: center; width: 1.6; color: #ff007f; shader: msdf;" position="0 0 0.01"></a-entity>
+            </a-entity>
+
+            <!-- Player Rig: Camera + Laser pointer controllers -->
+            <a-entity id="rig" position="0 0 0">
+                <!-- User's head/camera view -->
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                    <!-- Ring reticle overlay for gaze interaction (only active when VR controllers are disconnected) -->
+                    <a-entity id="gaze-reticle" cursor="fuse: false" raycaster="objects: .disc-dispenser, .vr-btn, .target-interactive" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.02" material="color: #00d4ff; shader: flat; opacity: 0.5"></a-entity>
+                    
+                    <!-- Floating visual representation of loaded disc for Desktop users -->
+                    <a-entity id="desktop-loaded-disc" position="0.22 -0.22 -0.5" rotation="15 -10 10" visible="false">
+                        <a-torus radius="0.05" radius-tubular="0.006" color="#00d4ff" material="shader: flat; opacity: 0.9"></a-torus>
+                        <a-cylinder radius="0.038" height="0.004" color="#00d4ff" material="shader: flat; opacity: 0.4"></a-cylinder>
+                        <!-- Dynamic glow when charging -->
+                        <a-entity id="desktop-charge-glow" geometry="primitive: sphere; radius: 0.04" material="color: #ff6a00; shader: flat; opacity: 0.0; transparent: true"></a-entity>
+                    </a-entity>
+                </a-camera>
+
+                <!-- Left Controller -->
+                <a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .disc-dispenser, .vr-btn, .target-interactive; far: 40; showLine: true;" line="color: #ff6a00; opacity: 0.6; width: 2"></a-entity>
+                
+                <!-- Right Controller -->
+                <a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .disc-dispenser, .vr-btn, .target-interactive; far: 40; showLine: true;" line="color: #00d4ff; opacity: 0.6; width: 2"></a-entity>
+            </a-entity>
+
+            <!-- Mouse Cursor for desktop click-to-aim interactions -->
+            <a-entity id="mouse-cursor" cursor="rayOrigin: mouse" raycaster="objects: .disc-dispenser, .vr-btn, .target-interactive"></a-entity>
+
+        </a-scene>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
