@@ -1,0 +1,353 @@
+/* --- Design Tokens & Variables --- */
+:root {
+    --bg-dark: #05020c;
+    --bg-gradient: radial-gradient(circle at 50% 50%, #150a2b 0%, #05020c 100%);
+    --neon-cyan: #00f3ff;
+    --neon-cyan-glow: rgba(0, 243, 255, 0.4);
+    --neon-pink: #ff007f;
+    --neon-pink-glow: rgba(255, 0, 127, 0.4);
+    --neon-purple: #a855f7;
+    --neon-purple-glow: rgba(168, 85, 247, 0.3);
+    --text-primary: #f8fafc;
+    --text-secondary: #a0aec0;
+    --glass-bg: rgba(25, 12, 45, 0.35);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Base Reset --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- A-Frame Scene Viewport Fixes --- */
+a-scene {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* --- 2D HUD (Desktop Fallback HUD) --- */
+.hud-container {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 32px;
+    z-index: 10;
+    pointer-events: none;
+    background: rgba(10, 5, 20, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+    border-radius: 16px;
+    padding: 12px 28px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                inset 0 0 15px rgba(0, 243, 255, 0.05);
+    transition: opacity 0.5s ease;
+}
+
+.hud-container.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hud-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.hud-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.hud-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 8px var(--neon-cyan-glow);
+}
+
+.arrow-counter {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+/* --- Charge / Draw Tension Gauge --- */
+.charge-panel {
+    min-width: 160px;
+}
+
+.gauge-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-top: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gauge-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+    box-shadow: 0 0 8px var(--neon-cyan-glow);
+    transition: width 0.05s linear;
+}
+
+/* --- UI Overlay Panels --- */
+.ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100; /* Above A-Scene */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    background: radial-gradient(circle at center, rgba(5, 2, 12, 0.45) 0%, rgba(5, 2, 12, 0.88) 100%);
+    backdrop-filter: blur(12px);
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.overlay-panel {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 40px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7),
+                inset 0 0 35px var(--neon-purple-glow);
+    backdrop-filter: blur(25px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    text-align: center;
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.overlay-panel.hidden {
+    display: none;
+}
+
+/* --- Badges & Headings --- */
+.logo-badge {
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px var(--neon-cyan-glow);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-badge.offline {
+    background: linear-gradient(135deg, var(--neon-pink), #4a1d35);
+    box-shadow: 0 4px 15px var(--neon-pink-glow);
+}
+
+h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 30%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* --- Instructions Cards --- */
+.instructions-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+}
+
+.instruction-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.instruction-row .icon {
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+.instruction-row h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.instruction-row p {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* --- Buttons --- */
+.btn {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 16px 36px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.btn-cyan {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
+}
+
+.btn-cyan:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(6, 182, 212, 0.6);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-pink {
+    background: linear-gradient(135deg, var(--neon-pink) 0%, #db2777 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(255, 0, 127, 0.4);
+}
+
+.btn-pink:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(255, 0, 127, 0.6);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* --- Status Messages --- */
+.status-msg {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* --- Stats Displays (Game Over) --- */
+.stats-display {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.stat-box {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.stat-value.text-cyan {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 8px var(--neon-cyan-glow);
+}
+
+/* --- Animations --- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+        color: var(--neon-cyan);
+    }
+}
+
+/* Hide UI panels smoothly */
+.ui-layer-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}

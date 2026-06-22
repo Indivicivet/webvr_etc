@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Neon Archer - WebXR Archery Game</title>
+    <meta name="description" content="Draw your cybernetic neon bow and launch glowing arrows at drifting targets across a wireframe valley in WebXR.">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- A-Frame Library CDN -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D HUD Overlay (Desktop Fallback UI) -->
+    <div id="hud" class="hud-container hidden">
+        <div class="hud-panel">
+            <span class="hud-label">Score</span>
+            <span id="hud-score-val" class="hud-value">0000</span>
+        </div>
+        
+        <div class="hud-panel charge-panel">
+            <span class="hud-label">Draw Tension</span>
+            <div class="gauge-container">
+                <div id="hud-charge-fill" class="gauge-fill"></div>
+            </div>
+        </div>
+
+        <div class="hud-panel">
+            <span class="hud-label">Arrows</span>
+            <div class="arrow-counter">
+                <span id="hud-arrows-val" class="hud-value" style="color: var(--neon-pink);">15</span>
+                <span class="hud-label">/ 15</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">Cyber Range</div>
+            <h1>Neon Archer</h1>
+            <p class="subtitle">Draw your virtual energy bow and shoot drifting targets, balloons, and drones inside a cyber valley. Pull the bowstring back to charge arrow speed and release to fire.</p>
+            
+            <div class="instructions-card">
+                <div class="instruction-row">
+                    <span class="icon">🎮</span>
+                    <div>
+                        <h3>VR Controls</h3>
+                        <p>Hold the bow with one hand. Bring your other hand to the string, hold the <strong>Trigger/Grip</strong>, pull back, and release to shoot.</p>
+                    </div>
+                </div>
+                <div class="instruction-row">
+                    <span class="icon">💻</span>
+                    <div>
+                        <h3>Desktop Controls</h3>
+                        <p><strong>Click & Hold</strong> mouse to draw the bow (moving the mouse downwards pulls string further). <strong>Release click</strong> to shoot. Aim with mouse look.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-cyan">Power Up Systems</button>
+            <div id="vr-status" class="status-msg">Calibrating cybernetic alignment...</div>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge offline">Session End</div>
+            <h1>Ammunition Depleted</h1>
+            <p class="subtitle">Your energy arrow reserve has run dry. Systems standing by for reload.</p>
+            
+            <div class="stats-display">
+                <div class="stat-box">
+                    <span class="stat-label">Final Score</span>
+                    <span id="stat-final-score" class="stat-value">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Best Record</span>
+                    <span id="stat-high-score" class="stat-value text-cyan">0</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-pink">Reload & Replay</button>
+        </div>
+    </div>
+
+    <!-- 3D WebXR Scene Viewport -->
+    <a-scene id="scene" embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+        
+        <!-- Ambient and Directional Lights -->
+        <a-entity light="type: ambient; color: #1e1140; intensity: 0.9"></a-entity>
+        <a-entity light="type: directional; color: #d0b0ff; intensity: 1.5" position="5 10 3"></a-entity>
+        
+        <!-- Skybox & Grid Floor -->
+        <a-sky color="#05020c"></a-sky>
+        
+        <!-- Cyber Valley Ground -->
+        <a-plane position="0 0 0" rotation="-90 0 0" width="200" height="200" color="#a855f7" wireframe="true" material="shader: flat; opacity: 0.15"></a-plane>
+        
+        <!-- Starry Constellation Group -->
+        <a-entity id="stars"></a-entity>
+
+        <!-- Cyber Valley peaks (glowing wireframe mountains in distance) -->
+        <a-entity id="mountains">
+            <!-- Far mountains to frame the range -->
+            <a-cone position="-25 12 -45" radius-bottom="28" radius-top="0" height="35" segments-radial="6" segments-height="4" color="#8b5cf6" wireframe="true" material="shader: flat; opacity: 0.25"></a-cone>
+            <a-cone position="28 15 -50" radius-bottom="32" radius-top="0" height="42" segments-radial="6" segments-height="4" color="#8b5cf6" wireframe="true" material="shader: flat; opacity: 0.25"></a-cone>
+            <a-cone position="-50 25 -70" radius-bottom="50" radius-top="0" height="70" segments-radial="6" segments-height="5" color="#c084fc" wireframe="true" material="shader: flat; opacity: 0.15"></a-cone>
+            <a-cone position="55 30 -75" radius-bottom="55" radius-top="0" height="80" segments-radial="6" segments-height="5" color="#c084fc" wireframe="true" material="shader: flat; opacity: 0.15"></a-cone>
+            <a-cone position="0 8 -40" radius-bottom="18" radius-top="0" height="22" segments-radial="5" segments-height="3" color="#6366f1" wireframe="true" material="shader: flat; opacity: 0.2"></a-cone>
+        </a-entity>
+
+        <!-- TARGET CONTAINER -->
+        <a-entity id="target-container"></a-entity>
+
+        <!-- ARROW CONTAINER -->
+        <a-entity id="arrow-container"></a-entity>
+
+        <!-- FLYING TEXT AND PARTICLES CONTAINER -->
+        <a-entity id="effects-container"></a-entity>
+
+        <!-- Holographic 3D VR Console (Floating in front, slightly down) -->
+        <a-entity id="vr-console" position="0 0.85 -1.25" rotation="-30 0 0" scale="0.8 0.8 0.8" class="vr-ui-element">
+            <!-- Console Plate -->
+            <a-plane width="1.6" height="0.85" color="#1a0f30" material="opacity: 0.85; transparent: true; roughness: 0.3; metalness: 0.7" geometry=""></a-plane>
+            <a-plane width="1.62" height="0.87" color="#00f3ff" wireframe="true" material="shader: flat; opacity: 0.5" geometry=""></a-plane>
+            
+            <!-- Dynamic Score & Arrow displays -->
+            <a-text id="vr-hud-score" value="SCORE: 0000" align="center" position="-0.4 0.2 0.01" width="2" color="#00f3ff" font="mozillavr"></a-text>
+            <a-text id="vr-hud-arrows" value="ARROWS: 15 / 15" align="center" position="0.4 0.2 0.01" width="2" color="#ff007f" font="mozillavr"></a-text>
+            <a-text id="vr-hud-highscore" value="BEST RECORD: 0000" align="center" position="0 -0.05 0.01" width="1.8" color="#d8b4fe" font="mozillavr"></a-text>
+            
+            <!-- Holographic Start / Restart Button -->
+            <a-entity id="vr-btn-play" position="0 -0.25 0.02" class="target">
+                <a-plane width="0.9" height="0.22" color="#00f3ff" material="opacity: 0.2; transparent: true; shader: flat" geometry=""></a-plane>
+                <a-plane width="0.92" height="0.24" color="#00f3ff" wireframe="true" material="shader: flat" geometry=""></a-plane>
+                <a-text id="vr-btn-play-text" value="SHOOT TO START" align="center" position="0 0 0.01" width="1.8" color="#ffffff" font="mozillavr"></a-text>
+            </a-entity>
+        </a-entity>
+
+        <!-- Player Rig: Camera and Hand Controllers -->
+        <a-entity id="rig" position="0 0 0">
+            <!-- VR Head Camera -->
+            <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                <!-- Desktop Bow Entity (only visible in desktop mode, attached to camera) -->
+                <a-entity id="desktop-bow" position="0.2 -0.22 -0.45" rotation="10 -15 -10" visible="true">
+                    <!-- Bow Crescent -->
+                    <a-torus arc="120" radius="0.3" radius-tubular="0.007" color="#00f3ff" material="shader: flat; opacity: 0.8" rotation="0 90 30" position="0 0 0"></a-torus>
+                    <!-- Bow Riser / Handle -->
+                    <a-cylinder position="-0.09 0 0" rotation="0 0 90" radius="0.009" height="0.16" color="#00f3ff" material="shader: flat"></a-cylinder>
+                    <!-- Bowstring -->
+                    <a-entity id="desktop-bowstring" line="start: -0.09 0.26 0; end: -0.09 -0.26 0; color: #ffeb3b; opacity: 0.9"></a-entity>
+                    <!-- Rest Arrow placeholder (only visible while drawing) -->
+                    <a-entity id="desktop-arrow-placeholder" visible="false" position="-0.09 0 0">
+                        <a-cylinder rotation="90 0 0" radius="0.004" height="0.25" color="#ff007f" material="shader: flat"></a-cylinder>
+                        <a-cone position="0 0 -0.13" rotation="-90 0 0" radius-bottom="0.01" height="0.02" color="#ff007f" material="shader: flat"></a-cone>
+                    </a-entity>
+                </a-entity>
+            </a-camera>
+
+            <!-- LEFT VR CONTROLLER (Holds Bow) -->
+            <a-entity id="left-hand" tracked-controls="hand: left" visible="false">
+                <a-entity id="vr-bow" position="0 0 0" rotation="0 0 0">
+                    <!-- Bow crescent shape -->
+                    <a-torus arc="120" radius="0.5" radius-tubular="0.012" color="#00f3ff" material="shader: flat; opacity: 0.95" rotation="0 90 30" position="0 0 0"></a-torus>
+                    <!-- Bow riser/grip -->
+                    <a-cylinder position="-0.15 0 0" rotation="0 0 90" radius="0.015" height="0.25" color="#00f3ff" material="shader: flat"></a-cylinder>
+                    <!-- Bowstring -->
+                    <a-entity id="vr-bowstring" line="start: -0.15 0.43 0; end: -0.15 -0.43 0; color: #ffeb3b; opacity: 0.95"></a-entity>
+                </a-entity>
+            </a-entity>
+
+            <!-- RIGHT VR CONTROLLER (Pulls Bowstring) -->
+            <a-entity id="right-hand" tracked-controls="hand: right" visible="false">
+                <!-- String Grab Node -->
+                <a-sphere radius="0.02" color="#ff007f" material="shader: flat; opacity: 0.8"></a-sphere>
+                <a-ring radius-inner="0.025" radius-outer="0.03" color="#ff007f" rotation="0 90 0" material="shader: flat"></a-ring>
+            </a-entity>
+        </a-entity>
+
+        <!-- Raycasting click trigger for desktop mouse clicks on console button / start target -->
+        <a-entity id="mouse-cursor" cursor="rayOrigin: mouse" raycaster="objects: .target; far: 100"></a-entity>
+        
+    </a-scene>
+
+    <!-- Game Core Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>
