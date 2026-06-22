@@ -30,17 +30,6 @@ body, html {
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* --- WebGL Canvas Container --- */
-#canvas-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
 }
 
 /* --- UI Overlay (Landing Screen) --- */
@@ -50,7 +39,7 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 10;
+    z-index: 100; /* Must be above a-scene */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -72,13 +61,14 @@ body, html {
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     padding: 40px;
-    max-width: 680px;
+    max-width: 500px;
     width: 100%;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
                 inset 0 0 40px var(--glass-glow);
     backdrop-filter: blur(20px);
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 32px;
     animation: fadeInUp 0.8s ease-out;
 }
@@ -99,12 +89,11 @@ body, html {
     font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 0.15em;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     box-shadow: 0 4px 15px var(--accent-glow);
 }
 
 .header h1 {
-    font-size: 2.75rem;
+    font-size: 2.5rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     background: linear-gradient(to right, #ffffff, #c084fc);
@@ -114,75 +103,15 @@ body, html {
 
 .subtitle {
     color: var(--text-secondary);
-    font-size: 1.05rem;
-    line-height: 1.6;
-    max-width: 500px;
-}
-
-/* --- Info Section --- */
-.info-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-@media (max-width: 600px) {
-    .info-section {
-        grid-template-columns: 1fr;
-    }
-    .header h1 {
-        font-size: 2rem;
-    }
-    .glass-card {
-        padding: 24px;
-        gap: 24px;
-    }
-}
-
-.control-box {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 16px;
-    padding: 20px;
-    transition: var(--transition-smooth);
-}
-
-.control-box:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
-    transform: translateY(-2px);
-}
-
-.control-box h3 {
     font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #e2e8f0;
+    line-height: 1.6;
 }
 
-.control-box ul {
-    list-style-type: none;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.control-box li {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.4;
-}
-
-.control-box li strong {
-    color: #cbd5e1;
-}
-
-/* --- Footer & Buttons --- */
+/* --- Buttons --- */
 .footer {
+    width: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
+    justify-content: center;
 }
 
 .btn {
@@ -209,49 +138,10 @@ body, html {
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
-    background: linear-gradient(135deg, #9333ea 0%, #6d28d9 100%);
 }
 
 .btn-primary:active {
     transform: translateY(1px);
-}
-
-.status-msg {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    animation: pulse 2s infinite ease-in-out;
-}
-
-/* --- VR Button Customization --- */
-#VRButton {
-    position: absolute !important;
-    bottom: 40px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 12px !important;
-    color: white !important;
-    padding: 16px 36px !important;
-    font-family: var(--font-sans) !important;
-    font-weight: 800 !important;
-    font-size: 1.1rem !important;
-    letter-spacing: 0.05em !important;
-    text-transform: uppercase !important;
-    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4) !important;
-    opacity: 1 !important;
-    transition: var(--transition-smooth) !important;
-    z-index: 100;
-    cursor: pointer;
-}
-
-#VRButton:hover {
-    transform: translateX(-50%) translateY(-3px) scale(1.03) !important;
-    box-shadow: 0 15px 35px rgba(236, 72, 153, 0.5) !important;
-}
-
-#VRButton:active {
-    transform: translateX(-50%) translateY(-1px) scale(0.98) !important;
 }
 
 /* --- Animations --- */
@@ -263,14 +153,5 @@ body, html {
     to {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.6;
-    }
-    50% {
-        opacity: 1;
     }
 }

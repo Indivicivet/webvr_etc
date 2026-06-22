@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>WebXR VR Template</title>
-    <meta name="description" content="A premium, zero-build WebXR template for creating immersive virtual reality experiences. Hostable on GitHub Pages.">
+    <meta name="description" content="A clean, zero-build A-Frame VR template.">
     
     <!-- Premium Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,57 +14,52 @@
     <!-- Core Stylesheet -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- Three.js Import Map -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
+    <!-- A-Frame Library -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 </head>
 <body>
-    <!-- Immersive WebGL Canvas Container -->
-    <div id="canvas-container"></div>
-
-    <!-- UI Overlay for Non-VR / Landing Screen -->
-    <div id="ui-overlay" class="overlay">
+    <!-- Start Screen Overlay -->
+    <div id="panel-start" class="overlay">
         <div class="glass-card">
             <header class="header">
                 <div class="logo-badge">WEBXR</div>
                 <h1>WebXR Playground</h1>
-                <p class="subtitle">A premium, zero-build virtual reality template. Perfect for quick deployment on GitHub Pages.</p>
+                <p class="subtitle">A minimal, zero-build virtual reality starter template using A-Frame.</p>
             </header>
-
-            <section class="info-section">
-                <div class="control-box">
-                    <h3>🎮 VR Mode</h3>
-                    <ul>
-                        <li><strong>Enter VR:</strong> Click the "ENTER VR" button at the bottom of the screen.</li>
-                        <li><strong>Aim:</strong> Point your VR controllers at the interactive shapes.</li>
-                        <li><strong>Select:</strong> Pull the Trigger to change colors & trigger haptics.</li>
-                    </ul>
-                </div>
-                
-                <div class="control-box">
-                    <h3>💻 Desktop / Fallback</h3>
-                    <ul>
-                        <li><strong>Look Around:</strong> Drag with left mouse button / swipe.</li>
-                        <li><strong>Interact:</strong> Click on objects to trigger animations.</li>
-                        <li><strong>Pan/Zoom:</strong> Right-click drag / pinch to zoom.</li>
-                    </ul>
-                </div>
-            </section>
-
             <footer class="footer">
-                <button id="btn-desktop-enter" class="btn btn-primary">Explore on Desktop</button>
-                <div id="vr-status-msg" class="status-msg">Detecting VR hardware...</div>
+                <button id="btn-start" class="btn btn-primary">Begin Experience</button>
             </footer>
         </div>
     </div>
 
+    <!-- 3D Scene Viewport -->
+    <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+        <!-- Lighting -->
+        <a-entity light="type: ambient; color: #1e163b; intensity: 0.8"></a-entity>
+        <a-entity light="type: directional; color: #b58eff; intensity: 1.2" position="2 4 3"></a-entity>
+
+        <!-- Environment: Sky and Grid Floor -->
+        <a-sky color="#07050f"></a-sky>
+        <a-plane position="0 0 0" rotation="-90 0 0" width="80" height="80" color="#ff007f" wireframe="true" material="shader: flat; opacity: 0.08"></a-plane>
+
+        <!-- Interactive Target Shapes -->
+        <a-box class="target" position="-1 1.5 -2" width="0.4" height="0.4" depth="0.4" color="#8b5cf6" material="roughness: 0.2; metalness: 0.8"></a-box>
+        <a-sphere class="target" position="0 1.5 -2" radius="0.25" color="#ec4899" material="roughness: 0.2; metalness: 0.8"></a-sphere>
+        <a-cylinder class="target" position="1 1.5 -2" radius="0.2" height="0.4" color="#06b6d4" material="roughness: 0.2; metalness: 0.8"></a-cylinder>
+
+        <!-- Player Rig: Camera + Controls (Preventing mouse capture) -->
+        <a-entity id="rig" position="0 0 0">
+            <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false"></a-camera>
+            <!-- VR Controllers -->
+            <a-entity id="left-controller" laser-controls="hand: left" raycaster="objects: .target; far: 50" line="color: #00f3ff; opacity: 0.7"></a-entity>
+            <a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .target; far: 50" line="color: #00f3ff; opacity: 0.7"></a-entity>
+        </a-entity>
+
+        <!-- Mouse Cursor for Desktop -->
+        <a-entity id="mouse-cursor" cursor="rayOrigin: mouse" raycaster="objects: .target"></a-entity>
+    </a-scene>
+
     <!-- Application Script -->
-    <script type="module" src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
