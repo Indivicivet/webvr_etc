@@ -149,9 +149,12 @@ class AudioEngine {
 
         const targetFreq = isActive ? 16000 : 280;
         
-        // Ramping speeds: faster ramp-up (tc 0.08s) than ramp-down (tc 0.6s)
-        const volTimeConstant = isActive ? 0.06 : 0.45;
-        const filterTimeConstant = isActive ? 0.08 : 0.40;
+        // Ramping speeds: fade-in over ~3s (TC 1.0s) vs fade-out over ~10s (TC 3.3s)
+        const volTimeConstant = isActive ? 1.0 : 3.3;
+        const filterTimeConstant = isActive ? 1.0 : 3.3;
+        
+        track.gainNode.gain.cancelScheduledValues(t);
+        track.filterNode.frequency.cancelScheduledValues(t);
         
         track.gainNode.gain.setTargetAtTime(targetVol, t, volTimeConstant);
         track.filterNode.frequency.setTargetAtTime(targetFreq, t, filterTimeConstant);
@@ -159,25 +162,55 @@ class AudioEngine {
 
     // Schedule Synth Triggers
     scheduleStep(step, time) {
-        // Only trigger synth components if the track has some audible volume
-        if (game.currentVolume.drums > 0.03) {
+        // Decrement enhanced steps counters (16 steps per bar, so 32 steps = 2 bars)
+        ['drums', 'bass', 'synth', 'lead'].forEach(name => {
+            if (game.enhancedStepsRemaining[name] > 0) {
+                game.enhancedStepsRemaining[name]--;
+            }
+        });
+
+        // Trigger if audible or enhanced
+        if (game.currentVolume.drums > 0.03 || game.enhancedStepsRemaining.drums > 0) {
             this.triggerDrums(step, time);
         }
-        if (game.currentVolume.bass > 0.03) {
+        if (game.currentVolume.bass > 0.03 || game.enhancedStepsRemaining.bass > 0) {
             this.triggerBass(step, time);
         }
-        if (game.currentVolume.synth > 0.03) {
+        if (game.currentVolume.synth > 0.03 || game.enhancedStepsRemaining.synth > 0) {
             this.triggerSynth(step, time);
         }
-        if (game.currentVolume.lead > 0.03) {
+        if (game.currentVolume.lead > 0.03 || game.enhancedStepsRemaining.lead > 0) {
             this.triggerLead(step, time);
         }
     }
 
+    // Helper to trigger Hi-Hat noise
+    triggerHihat(time, vol, decay) {
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.noiseBuffer;
+        
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(7500, time);
+        
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.tracks.drums.filterNode);
+        
+        noise.start(time);
+        noise.stop(time + decay + 0.01);
+    }
+
     // 1. DRUMS SYNTHESIS
     triggerDrums(step, time) {
-        // Kick: steps 0, 4, 8, 12
-        if (step === 0 || step === 4 || step === 8 || step === 12) {
+        const isEnhanced = game.enhancedStepsRemaining.drums > 0;
+
+        // Kick: steps 0, 4, 8, 12 (standard) plus 10, 11 (enhanced trap double kick)
+        if (step === 0 || step === 4 || step === 8 || step === 12 || (isEnhanced && (step === 10 || step === 11))) {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             
@@ -193,37 +226,27 @@ class AudioEngine {
             osc.start(time);
             osc.stop(time + 0.12);
 
-            // Trigger visual beat pulse
             this.triggerVisualPulse('drums');
         }
 
         // Hi-Hat: off-beat open hat on 2, 6, 10, 14. Closed hat on others.
         if (step % 2 === 0) {
             const isOpen = (step === 2 || step === 6 || step === 10 || step === 14);
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = this.noiseBuffer;
-            
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'highpass';
-            filter.frequency.setValueAtTime(7500, time);
-            
-            const gain = this.ctx.createGain();
             const vol = isOpen ? 0.12 : 0.06;
             const decay = isOpen ? 0.16 : 0.04;
-            
-            gain.gain.setValueAtTime(vol, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
-            
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.tracks.drums.filterNode);
-            
-            noise.start(time);
-            noise.stop(time + decay + 0.01);
+            this.triggerHihat(time, vol, decay);
         }
 
-        // Snare / Clap: steps 4 and 12 (backbeat)
-        if (step === 4 || step === 12) {
+        // Enhanced Trappy Hi-Hat roll on steps 7 and 15
+        if (isEnhanced && (step === 7 || step === 15)) {
+            const secondsPerBeat = 60.0 / this.bpm;
+            this.triggerHihat(time, 0.08, 0.03);
+            this.triggerHihat(time + 0.125 * secondsPerBeat, 0.08, 0.03);
+            this.triggerVisualPulse('drums');
+        }
+
+        // Snare / Clap: steps 4 and 12 (backbeat) plus 14 (enhanced bounce snare)
+        if (step === 4 || step === 12 || (isEnhanced && step === 14)) {
             // Noise component
             const noise = this.ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
@@ -256,16 +279,42 @@ class AudioEngine {
             oscGain.connect(this.tracks.drums.filterNode);
             osc.start(time);
             osc.stop(time + 0.09);
+
+            this.triggerVisualPulse('drums');
         }
+    }
+
+    // Helper to synthesize a single bass note
+    playBassNote(freq, time, filterStartFreq, duration, Q) {
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        const bassFilter = this.ctx.createBiquadFilter();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, time);
+        
+        // Sweeping filter envelope for acid/squelchy feel
+        bassFilter.type = 'lowpass';
+        bassFilter.Q.setValueAtTime(Q, time);
+        bassFilter.frequency.setValueAtTime(filterStartFreq, time);
+        bassFilter.frequency.exponentialRampToValueAtTime(180, time + duration - 0.03);
+        
+        oscGain.gain.setValueAtTime(0.48, time);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        
+        osc.connect(bassFilter);
+        bassFilter.connect(oscGain);
+        oscGain.connect(this.tracks.bass.filterNode);
+        
+        osc.start(time);
+        osc.stop(time + duration + 0.02);
     }
 
     // 2. ACID BASS SYNTHESIS
     triggerBass(step, time) {
         // Syncopated 16-step bassline pattern
-        // Groove: X . . X . . X . X . X X . . X . (1, 4, 7, 9, 11, 12, 15)
         const bassPattern = [true, false, false, true, false, false, true, false, true, false, true, true, false, false, true, false];
-        if (!bassPattern[step]) return;
-
+        
         // C Minor Chord Roots: Cm (C), Ab (Ab), Eb (Eb), Bb (Bb)
         const roots = [
             32.70, // C1 (for C2, multiply by 2 = 65.41 Hz)
@@ -277,57 +326,27 @@ class AudioEngine {
         const activeChordIdx = this.barCount % 4;
         const baseFreq = roots[activeChordIdx] * 2.0; // Play in octave 2
 
-        // Synthesize Bass Note
-        const osc = this.ctx.createOscillator();
-        const oscGain = this.ctx.createGain();
-        const bassFilter = this.ctx.createBiquadFilter();
-        
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(baseFreq, time);
-        
-        // Sweeping filter envelope for acid/squelchy feel
-        bassFilter.type = 'lowpass';
-        bassFilter.Q.setValueAtTime(5.0, time);
-        bassFilter.frequency.setValueAtTime(750, time);
-        bassFilter.frequency.exponentialRampToValueAtTime(180, time + 0.13);
-        
-        oscGain.gain.setValueAtTime(0.48, time);
-        oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
-        
-        osc.connect(bassFilter);
-        bassFilter.connect(oscGain);
-        oscGain.connect(this.tracks.bass.filterNode);
-        
-        osc.start(time);
-        osc.stop(time + 0.18);
+        const isEnhanced = game.enhancedStepsRemaining.bass > 0;
 
-        this.triggerVisualPulse('bass');
+        // Base bass note
+        if (bassPattern[step]) {
+            this.playBassNote(baseFreq, time, 750, 0.16, 5.0);
+            this.triggerVisualPulse('bass');
+        }
+
+        // Enhanced acid offbeat bassline syncopation (octave 3, squelchy filter)
+        if (isEnhanced) {
+            const enhancedPattern = [false, false, true, false, true, true, false, true, false, true, false, false, true, true, false, true];
+            if (enhancedPattern[step]) {
+                const highFreq = baseFreq * 2.0; // Octave 3
+                this.playBassNote(highFreq, time, 1800, 0.10, 8.0);
+                this.triggerVisualPulse('bass');
+            }
+        }
     }
 
-    // 3. RETRO CHORD PAD SYNTHESIS
-    triggerSynth(step, time) {
-        // Chord hits on: step 0 (long), step 6 (short), step 8 (med), step 14 (short)
-        const padHits = [
-            { trigger: 0, duration: 0.65 },
-            { trigger: 6, duration: 0.20 },
-            { trigger: 8, duration: 0.45 },
-            { trigger: 14, duration: 0.20 }
-        ];
-
-        const hit = padHits.find(h => h.trigger === step);
-        if (!hit) return;
-
-        // Define lush chord structures in octave 3
-        const chords = [
-            [130.81, 155.56, 196.00, 261.63], // Cm: C3, Eb3, G3, C4
-            [103.83, 130.81, 155.56, 207.65], // Ab: Ab2, C3, Eb3, Ab3
-            [155.56, 196.00, 233.08, 311.13], // Eb: Eb3, G3, Bb3, Eb4
-            [116.54, 146.83, 174.61, 233.08]  // Bb: Bb2, D3, F3, Bb3
-        ];
-
-        const chordNotes = chords[this.barCount % 4];
-        
-        // Play chord (trigger 4 oscillators detuned in pairs)
+    // Helper to synthesize synth chord pads
+    playSynthChord(chordNotes, time, duration) {
         chordNotes.forEach(freq => {
             // Pair 1: -6 cents
             const osc1 = this.ctx.createOscillator();
@@ -346,16 +365,15 @@ class AudioEngine {
             const attack = 0.08;
             const release = 0.15;
             
-            // Envelope setup
             gain1.gain.setValueAtTime(0, time);
             gain1.gain.linearRampToValueAtTime(0.18, time + attack);
-            gain1.gain.setValueAtTime(0.18, time + hit.duration - release);
-            gain1.gain.exponentialRampToValueAtTime(0.001, time + hit.duration);
+            gain1.gain.setValueAtTime(0.18, time + duration - release);
+            gain1.gain.exponentialRampToValueAtTime(0.001, time + duration);
             
             gain2.gain.setValueAtTime(0, time);
             gain2.gain.linearRampToValueAtTime(0.18, time + attack);
-            gain2.gain.setValueAtTime(0.18, time + hit.duration - release);
-            gain2.gain.exponentialRampToValueAtTime(0.001, time + hit.duration);
+            gain2.gain.setValueAtTime(0.18, time + duration - release);
+            gain2.gain.exponentialRampToValueAtTime(0.001, time + duration);
             
             osc1.connect(gain1);
             osc2.connect(gain2);
@@ -364,11 +382,106 @@ class AudioEngine {
             
             osc1.start(time);
             osc2.start(time);
-            osc1.stop(time + hit.duration + 0.02);
-            osc2.stop(time + hit.duration + 0.02);
+            osc1.stop(time + duration + 0.02);
+            osc2.stop(time + duration + 0.02);
         });
+    }
 
-        this.triggerVisualPulse('synth');
+    // Helper to play arpeggiated synth pluck
+    playSynthPluck(freq, time) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, time);
+        
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2500, time);
+        filter.frequency.exponentialRampToValueAtTime(350, time + 0.12);
+        
+        gain.gain.setValueAtTime(0.16, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.14);
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.tracks.synth.filterNode);
+        
+        osc.start(time);
+        osc.stop(time + 0.16);
+    }
+
+    // 3. RETRO CHORD PAD SYNTHESIS
+    triggerSynth(step, time) {
+        // Chord hits on: step 0 (long), step 6 (short), step 8 (med), step 14 (short)
+        const padHits = [
+            { trigger: 0, duration: 0.65 },
+            { trigger: 6, duration: 0.20 },
+            { trigger: 8, duration: 0.45 },
+            { trigger: 14, duration: 0.20 }
+        ];
+
+        const chords = [
+            [130.81, 155.56, 196.00, 261.63], // Cm: C3, Eb3, G3, C4
+            [103.83, 130.81, 155.56, 207.65], // Ab: Ab2, C3, Eb3, Ab3
+            [155.56, 196.00, 233.08, 311.13], // Eb: Eb3, G3, Bb3, Eb4
+            [116.54, 146.83, 174.61, 233.08]  // Bb: Bb2, D3, F3, Bb3
+        ];
+
+        const activeChordIdx = this.barCount % 4;
+        const chordNotes = chords[activeChordIdx];
+
+        // Base chord pad triggers
+        const hit = padHits.find(h => h.trigger === step);
+        if (hit) {
+            this.playSynthChord(chordNotes, time, hit.duration);
+            this.triggerVisualPulse('synth');
+        }
+
+        // Enhanced pluck arpeggiator (syncopated arpeggio at octave 4)
+        const isEnhanced = game.enhancedStepsRemaining.synth > 0;
+        if (isEnhanced) {
+            const arpPattern = [false, false, true, true, false, true, false, true, false, false, true, true, false, true, false, true];
+            if (arpPattern[step]) {
+                const noteIdx = (step * 3) % chordNotes.length;
+                const freq = chordNotes[noteIdx] * 2.0; // Pluck octave
+                this.playSynthPluck(freq, time);
+                this.triggerVisualPulse('synth');
+            }
+        }
+    }
+
+    // Helper to synthesize a single lead note
+    playLeadNote(freq, time, duration) {
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const leadFilter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(freq, time);
+        osc1.detune.setValueAtTime(-8, time);
+
+        osc2.type = 'sawtooth';
+        osc2.frequency.setValueAtTime(freq, time);
+        osc2.detune.setValueAtTime(8, time);
+
+        leadFilter.type = 'lowpass';
+        leadFilter.frequency.setValueAtTime(1800, time);
+        leadFilter.Q.setValueAtTime(1.5, time);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.24, time + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        osc1.connect(leadFilter);
+        osc2.connect(leadFilter);
+        leadFilter.connect(gain);
+        gain.connect(this.tracks.lead.filterNode);
+
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + duration + 0.02);
+        osc2.stop(time + duration + 0.02);
     }
 
     // 4. SPACIOUS PENTATONIC LEAD MELODY
@@ -383,18 +496,12 @@ class AudioEngine {
             { step: 14, noteIdx: 5 }
         ];
 
-        const currentMelody = melodySteps.find(m => m.step === step);
-        if (!currentMelody) return;
-
-        // Compose a 4-bar shifting pentatonic melody in C minor
-        // Notes: C4, D4, Eb4, F4, G4, Bb4, C5, D5, Eb5, F5, G5, Bb5, C6
         const pentatonicScale = [
             261.63, 293.66, 311.13, 349.23, 392.00, 466.16, // Octave 4
             523.25, 587.33, 622.25, 698.46, 783.99, 932.33, // Octave 5
             1046.50                                         // C6
         ];
 
-        // Structured melody patterns per chord bar
         const melodyPhrases = [
             [6, 8, 10, 9, 8, 6],    // Bar 1 (Cm): C5, Eb5, G5, F5, Eb5, C5
             [8, 10, 11, 10, 8, 6],  // Bar 2 (Ab): Eb5, G5, Bb5, G5, Eb5, C5
@@ -403,43 +510,29 @@ class AudioEngine {
         ];
 
         const activePhrase = melodyPhrases[this.barCount % 4];
-        const noteIdx = activePhrase[currentMelody.noteIdx];
-        const targetFreq = pentatonicScale[noteIdx];
 
-        // Synthesize Lead Note
-        const osc1 = this.ctx.createOscillator();
-        const osc2 = this.ctx.createOscillator();
-        const leadFilter = this.ctx.createBiquadFilter();
-        const gain = this.ctx.createGain();
+        const isEnhanced = game.enhancedStepsRemaining.lead > 0;
 
-        osc1.type = 'sawtooth';
-        osc1.frequency.setValueAtTime(targetFreq, time);
-        osc1.detune.setValueAtTime(-8, time);
+        // Base lead melody note
+        const currentMelody = melodySteps.find(m => m.step === step);
+        if (currentMelody) {
+            const noteIdx = activePhrase[currentMelody.noteIdx];
+            const targetFreq = pentatonicScale[noteIdx];
+            this.playLeadNote(targetFreq, time, 0.22);
+            this.triggerVisualPulse('lead');
+        }
 
-        osc2.type = 'sawtooth';
-        osc2.frequency.setValueAtTime(targetFreq, time);
-        osc2.detune.setValueAtTime(8, time);
-
-        leadFilter.type = 'lowpass';
-        leadFilter.frequency.setValueAtTime(1800, time);
-        leadFilter.Q.setValueAtTime(1.5, time);
-
-        const duration = 0.22;
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(0.24, time + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
-        osc1.connect(leadFilter);
-        osc2.connect(leadFilter);
-        leadFilter.connect(gain);
-        gain.connect(this.tracks.lead.filterNode);
-
-        osc1.start(time);
-        osc2.start(time);
-        osc1.stop(time + duration + 0.02);
-        osc2.stop(time + duration + 0.02);
-
-        this.triggerVisualPulse('lead');
+        // Enhanced lead gated echo (plays syncopated counter-melody in octave 6)
+        if (isEnhanced) {
+            const arpSteps = [2, 5, 9, 13];
+            if (arpSteps.includes(step)) {
+                const noteIdx = step % activePhrase.length;
+                const baseNote = activePhrase[noteIdx];
+                const targetFreq = pentatonicScale[baseNote] * 2.0; // Octave higher
+                this.playLeadNote(targetFreq, time, 0.12);
+                this.triggerVisualPulse('lead');
+            }
+        }
     }
 
     // Trigger visual pulse state
@@ -589,6 +682,14 @@ const game = {
         bass: false,
         synth: false,
         lead: false
+    },
+
+    // Enhanced interactive riff counters (16 steps = 1 bar)
+    enhancedStepsRemaining: {
+        drums: 0,
+        bass: 0,
+        synth: 0,
+        lead: 0
     },
 
     // Current target mix recipe
@@ -943,7 +1044,8 @@ function registerFrameTick() {
             let targetVol = game.gazeState[name] ? 1.0 : 0.0;
             if (name === 'drums' && !game.gazeState[name]) targetVol = 0.15; // drums floor
             
-            const speed = game.gazeState[name] ? 5.5 : 0.65; // quicker fade-in than fade-out
+            // 3s fade-in (speed 1.0) vs 10s fade-out (speed 0.3)
+            const speed = game.gazeState[name] ? 1.0 : 0.3;
             game.currentVolume[name] += (targetVol - game.currentVolume[name]) * speed * dt;
             
             // Bounds check
@@ -1004,15 +1106,18 @@ function animateInstrumentNodes(time, dt) {
     // --- DRUMS NODE ---
     const drumsMesh = document.querySelector('#node-drums-mesh');
     if (drumsMesh) {
-        // Base scale: 0.32. Hover target: 0.40
-        let target = game.gazeState.drums ? 0.40 : 0.32;
+        const isEnhanced = game.enhancedStepsRemaining.drums > 0;
+        let target = game.gazeState.drums ? 0.35 : 0.28;
+        if (isEnhanced) target *= 1.35;
+        
         let s = drumsMesh.getAttribute('scale');
         
         // If beat triggered, spike scale
         if (game.beatPulseTriggered.drums) {
-            s.x = 0.56;
-            s.y = 0.56;
-            s.z = 0.56;
+            const spike = isEnhanced ? 0.65 : 0.48;
+            s.x = spike;
+            s.y = spike;
+            s.z = spike;
             game.beatPulseTriggered.drums = false; // Reset flag
         }
         
@@ -1022,15 +1127,17 @@ function animateInstrumentNodes(time, dt) {
 
         // Hovered spin speed
         let r = drumsMesh.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
-        let spinSpeed = game.gazeState.drums ? 130 : 25;
+        let spinSpeed = isEnhanced ? 240 : (game.gazeState.drums ? 130 : 25);
         drumsMesh.setAttribute('rotation', { x: r.x + spinSpeed * dt, y: r.y + spinSpeed * dt * 1.3, z: r.z });
 
-        // Update floor glow ring opacity and radius
+        // Update floor glow ring opacity and radius (flashes white if enhanced)
         const ring = document.querySelector('#ring-drums');
         if (ring) {
-            const opacity = game.gazeState.drums ? 0.7 : 0.2;
-            const rOuter = game.gazeState.drums ? 0.48 : 0.42;
+            const opacity = isEnhanced ? 0.95 : (game.gazeState.drums ? 0.7 : 0.2);
+            const rOuter = isEnhanced ? 0.65 : (game.gazeState.drums ? 0.48 : 0.42);
+            const color = isEnhanced ? '#ffffff' : '#ff0055';
             ring.setAttribute('material', 'opacity', opacity);
+            ring.setAttribute('material', 'color', color);
             ring.setAttribute('radius-outer', rOuter);
         }
     }
@@ -1038,13 +1145,17 @@ function animateInstrumentNodes(time, dt) {
     // --- BASS NODE ---
     const bassMesh = document.querySelector('#node-bass-mesh');
     if (bassMesh) {
+        const isEnhanced = game.enhancedStepsRemaining.bass > 0;
         let target = game.gazeState.bass ? 1.25 : 1.0;
+        if (isEnhanced) target *= 1.35;
+        
         let s = bassMesh.getAttribute('scale');
         
         if (game.beatPulseTriggered.bass) {
-            s.x = 1.48;
-            s.y = 1.48;
-            s.z = 1.48;
+            const spike = isEnhanced ? 1.9 : 1.48;
+            s.x = spike;
+            s.y = spike;
+            s.z = spike;
             game.beatPulseTriggered.bass = false;
         }
         
@@ -1053,14 +1164,16 @@ function animateInstrumentNodes(time, dt) {
 
         // Float ring slightly and rotate
         let r = bassMesh.getAttribute('rotation') || { x: 90, y: 0, z: 0 };
-        let spinSpeed = game.gazeState.bass ? 160 : 35;
+        let spinSpeed = isEnhanced ? 280 : (game.gazeState.bass ? 160 : 35);
         bassMesh.setAttribute('rotation', { x: r.x, y: r.y, z: r.z + spinSpeed * dt });
 
         const ring = document.querySelector('#ring-bass');
         if (ring) {
-            const opacity = game.gazeState.bass ? 0.7 : 0.2;
-            const rOuter = game.gazeState.bass ? 0.48 : 0.42;
+            const opacity = isEnhanced ? 0.95 : (game.gazeState.bass ? 0.7 : 0.2);
+            const rOuter = isEnhanced ? 0.65 : (game.gazeState.bass ? 0.48 : 0.42);
+            const color = isEnhanced ? '#ffffff' : '#00f0ff';
             ring.setAttribute('material', 'opacity', opacity);
+            ring.setAttribute('material', 'color', color);
             ring.setAttribute('radius-outer', rOuter);
         }
     }
@@ -1069,17 +1182,22 @@ function animateInstrumentNodes(time, dt) {
     const synthMesh = document.querySelector('#node-synth-mesh');
     const synthCore = document.querySelector('#node-synth-core');
     if (synthMesh && synthCore) {
+        const isEnhanced = game.enhancedStepsRemaining.synth > 0;
         let target = game.gazeState.synth ? 1.25 : 1.0;
+        if (isEnhanced) target *= 1.35;
+        
         let s = synthMesh.getAttribute('scale');
         let sc = synthCore.getAttribute('scale');
         
         if (game.beatPulseTriggered.synth) {
-            s.x = 1.45;
-            s.y = 1.45;
-            s.z = 1.45;
-            sc.x = 1.5;
-            sc.y = 1.5;
-            sc.z = 1.5;
+            const spike = isEnhanced ? 1.9 : 1.45;
+            const coreSpike = isEnhanced ? 2.0 : 1.5;
+            s.x = spike;
+            s.y = spike;
+            s.z = spike;
+            sc.x = coreSpike;
+            sc.y = coreSpike;
+            sc.z = coreSpike;
             game.beatPulseTriggered.synth = false;
         }
         
@@ -1090,14 +1208,16 @@ function animateInstrumentNodes(time, dt) {
 
         // Spin wireframe box opposite way
         let r = synthMesh.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
-        let spinSpeed = game.gazeState.synth ? 90 : 20;
+        let spinSpeed = isEnhanced ? 180 : (game.gazeState.synth ? 90 : 20);
         synthMesh.setAttribute('rotation', { x: r.x + spinSpeed * dt, y: r.y - spinSpeed * dt * 1.5, z: r.z });
 
         const ring = document.querySelector('#ring-synth');
         if (ring) {
-            const opacity = game.gazeState.synth ? 0.7 : 0.2;
-            const rOuter = game.gazeState.synth ? 0.48 : 0.42;
+            const opacity = isEnhanced ? 0.95 : (game.gazeState.synth ? 0.7 : 0.2);
+            const rOuter = isEnhanced ? 0.65 : (game.gazeState.synth ? 0.48 : 0.42);
+            const color = isEnhanced ? '#ffffff' : '#a300ff';
             ring.setAttribute('material', 'opacity', opacity);
+            ring.setAttribute('material', 'color', color);
             ring.setAttribute('radius-outer', rOuter);
         }
     }
@@ -1105,31 +1225,38 @@ function animateInstrumentNodes(time, dt) {
     // --- LEAD NODE ---
     const leadMesh = document.querySelector('#node-lead-mesh');
     if (leadMesh) {
-        let target = game.gazeState.lead ? 0.32 : 0.25; // x & z base scale
+        const isEnhanced = game.enhancedStepsRemaining.lead > 0;
+        let target = game.gazeState.lead ? 0.26 : 0.20; // x & z base scale
+        if (isEnhanced) target *= 1.35;
+        
         let s = leadMesh.getAttribute('scale');
         
         if (game.beatPulseTriggered.lead) {
-            s.x = 0.44;
-            s.y = 0.95;
-            s.z = 0.44;
+            const spikeXZ = isEnhanced ? 0.55 : 0.38;
+            const spikeY = isEnhanced ? 1.15 : 0.85;
+            s.x = spikeXZ;
+            s.y = spikeY;
+            s.z = spikeXZ;
             game.beatPulseTriggered.lead = false;
         }
         
         // Interpolating x, y (height), and z
         let nextX = s.x + (target - s.x) * 6.5 * dt;
-        let nextY = s.y + (target * 2.2 - s.y) * 6.5 * dt; // height scale ratio is 2.2
+        let nextY = s.y + (target * 2.25 - s.y) * 6.5 * dt; // height scale ratio is 2.25
         leadMesh.setAttribute('scale', { x: nextX, y: nextY, z: nextX });
 
         // Rapid vertical spin
         let r = leadMesh.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
-        let spinSpeed = game.gazeState.lead ? 240 : 50;
+        let spinSpeed = isEnhanced ? 420 : (game.gazeState.lead ? 240 : 50);
         leadMesh.setAttribute('rotation', { x: r.x, y: r.y + spinSpeed * dt, z: r.z });
 
         const ring = document.querySelector('#ring-lead');
         if (ring) {
-            const opacity = game.gazeState.lead ? 0.7 : 0.2;
-            const rOuter = game.gazeState.lead ? 0.48 : 0.42;
+            const opacity = isEnhanced ? 0.95 : (game.gazeState.lead ? 0.7 : 0.2);
+            const rOuter = isEnhanced ? 0.65 : (game.gazeState.lead ? 0.48 : 0.42);
+            const color = isEnhanced ? '#ffffff' : '#ffbb00';
             ring.setAttribute('material', 'opacity', opacity);
+            ring.setAttribute('material', 'color', color);
             ring.setAttribute('radius-outer', rOuter);
         }
     }
@@ -1238,8 +1365,33 @@ function bindGazeTriggers() {
                 game.gazeState[name] = false;
                 audio.updateTrackVolume(name, false);
             });
+
+            // Trigger interactive riff on click (controller trigger click)
+            el.addEventListener('click', () => {
+                triggerInstrumentEnhancement(name);
+            });
         }
     });
+}
+
+function triggerInstrumentEnhancement(name) {
+    if (game.state !== 'PLAYING') return;
+    
+    // Set to 32 steps (exactly 2 bars)
+    game.enhancedStepsRemaining[name] = 32;
+    
+    // Stronger controller haptics feedback on enhancement trigger
+    const scene = document.querySelector('a-scene');
+    if (scene && scene.xrSession) {
+        const session = scene.xrSession;
+        if (session.inputSources) {
+            for (const source of session.inputSources) {
+                if (source.gamepad && source.gamepad.hapticActuators && source.gamepad.hapticActuators.length > 0) {
+                    source.gamepad.hapticActuators[0].pulse(1.0, 150); // Stronger 150ms haptic buzz
+                }
+            }
+        }
+    }
 }
 
 function triggerHapticFeedback() {
@@ -1444,6 +1596,8 @@ function initEnvironmentObjects() {
 
 function animateEnvironmentObjects(time, dt, beats) {
     environmentObjects.forEach(obj => {
+        const isEnhanced = game.enhancedStepsRemaining[obj.linkedTrack] > 0;
+        
         if (obj.type === 'pillar-rings') {
             // Move rings up and down
             const offset1 = Math.sin(time * 0.001 * obj.speed1) * 2.0;
@@ -1453,11 +1607,18 @@ function animateEnvironmentObjects(time, dt, beats) {
             
             // Reaction to beat
             if (beats[obj.linkedTrack]) {
-                obj.pillarScaleY = 1.15;
+                obj.pillarScaleY = isEnhanced ? 1.35 : 1.15;
             } else {
                 obj.pillarScaleY += (1.0 - obj.pillarScaleY) * 6.0 * dt;
             }
             obj.pillarEl.setAttribute('scale', { x: 1.0, y: obj.pillarScaleY, z: 1.0 });
+
+            // Ring colors flash white if enhanced
+            const ringColor = isEnhanced ? '#ffffff' : obj.color;
+            obj.ring1.setAttribute('material', 'color', ringColor);
+            obj.ring2.setAttribute('material', 'color', ringColor);
+            obj.ring1.setAttribute('material', 'emissive', ringColor);
+            obj.ring2.setAttribute('material', 'emissive', ringColor);
         } else if (obj.type === 'floaty') {
             // Rotate shape
             const rot = obj.el.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
@@ -1473,11 +1634,22 @@ function animateEnvironmentObjects(time, dt, beats) {
             
             // Reaction to beat
             if (beats[obj.linkedTrack]) {
-                obj.scale = 1.4;
+                obj.scale = isEnhanced ? 1.9 : 1.4;
             } else {
                 obj.scale += (1.0 - obj.scale) * 8.0 * dt;
             }
             obj.el.setAttribute('scale', { x: obj.scale, y: obj.scale, z: obj.scale });
+
+            // Color / emissive glow feedback
+            if (isEnhanced) {
+                obj.el.setAttribute('material', 'color', '#ffffff');
+                obj.el.setAttribute('material', 'emissive', '#ffffff');
+                obj.el.setAttribute('material', 'emissiveIntensity', 0.95);
+            } else {
+                obj.el.setAttribute('material', 'color', obj.color);
+                obj.el.setAttribute('material', 'emissive', obj.color);
+                obj.el.setAttribute('material', 'emissiveIntensity', 0.3);
+            }
         }
     });
 }

@@ -220,12 +220,12 @@
             <!-- 5. Interactive Music Instrument Nodes -->
             
             <!-- DRUMS NODE -->
-            <a-entity id="node-drums" position="-1.36 1.5 -2.67">
+            <a-entity id="node-drums" position="-1.6 1.5 -3.5">
                 <!-- Visual shape -->
                 <a-entity id="node-drums-mesh" 
                           geometry="primitive: octahedron"
                           material="color: #ff0055; emissive: #ff0055; emissiveIntensity: 0.25; roughness: 0.15; metalness: 0.7"
-                          scale="0.32 0.32 0.32">
+                          scale="0.28 0.28 0.28">
                 </a-entity>
                 <!-- Invisible Raycast Hitbox (Decoupled from scaling/pulsing meshes) -->
                 <a-entity class="instrument" id="hit-drums"
@@ -246,10 +246,10 @@
             </a-entity>
 
             <!-- BASS NODE -->
-            <a-entity id="node-bass" position="-0.47 1.4 -2.96">
+            <a-entity id="node-bass" position="-0.55 1.4 -3.9">
                 <!-- Visual shape -->
                 <a-entity id="node-bass-mesh" 
-                          geometry="primitive: torus; radius: 0.28; radiusTubular: 0.04"
+                          geometry="primitive: torus; radius: 0.24; radiusTubular: 0.035"
                           material="color: #00f0ff; emissive: #00f0ff; emissiveIntensity: 0.25; roughness: 0.15; metalness: 0.7"
                           rotation="90 0 0"
                           scale="1 1 1">
@@ -272,15 +272,15 @@
             </a-entity>
 
             <!-- SYNTH NODE -->
-            <a-entity id="node-synth" position="0.47 1.4 -2.96">
+            <a-entity id="node-synth" position="0.55 1.4 -3.9">
                 <!-- Inner Core Sphere -->
                 <a-entity id="node-synth-core"
-                          geometry="primitive: sphere; radius: 0.15"
+                          geometry="primitive: sphere; radius: 0.13"
                           material="color: #a300ff; emissive: #a300ff; emissiveIntensity: 0.35; roughness: 0.2; metalness: 0.5">
                 </a-entity>
                 <!-- Outer wireframe box -->
                 <a-entity id="node-synth-mesh" 
-                          geometry="primitive: box; width: 0.4; height: 0.4; depth: 0.4"
+                          geometry="primitive: box; width: 0.34; height: 0.34; depth: 0.34"
                           material="color: #a300ff; emissive: #a300ff; emissiveIntensity: 0.1; wireframe: true"
                           scale="1 1 1">
                 </a-entity>
@@ -302,12 +302,12 @@
             </a-entity>
 
             <!-- LEAD NODE -->
-            <a-entity id="node-lead" position="1.36 1.5 -2.67">
+            <a-entity id="node-lead" position="1.6 1.5 -3.5">
                 <!-- Visual shape -->
                 <a-entity id="node-lead-mesh" 
                           geometry="primitive: octahedron"
                           material="color: #ffbb00; emissive: #ffbb00; emissiveIntensity: 0.25; roughness: 0.1; metalness: 0.8"
-                          scale="0.25 0.55 0.25">
+                          scale="0.20 0.45 0.20">
                 </a-entity>
                 <!-- Invisible Raycast Hitbox -->
                 <a-entity class="instrument" id="hit-lead"
