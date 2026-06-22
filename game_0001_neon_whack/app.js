@@ -286,8 +286,7 @@ const UI = {
     sideHudHighScore: document.getElementById('side-hud-highscore'),
     sideHudLives: document.getElementById('side-hud-lives'),
     
-    // Gaze Cursor & VR Controllers
-    gazeCursor: document.getElementById('gaze-cursor'),
+    // VR Controllers
     leftHand: document.getElementById('left-hand'),
     rightHand: document.getElementById('right-hand')
 };
@@ -296,14 +295,9 @@ const UI = {
 let leftConnected = false;
 let rightConnected = false;
 
-function updateGazeCursorState() {
+function updateInputState() {
     const hasControllers = leftConnected || rightConnected;
     if (hasControllers) {
-        // Disable gaze cursor raycasting and hide it
-        if (UI.gazeCursor) {
-            UI.gazeCursor.setAttribute('raycaster', 'objects', 'none');
-            UI.gazeCursor.setAttribute('visible', 'false');
-        }
         // Update VR overlay button text to suggest trigger pointing
         if (UI.vrBtnStartText) {
             UI.vrBtnStartText.setAttribute('value', 'TRIGGER TO START');
@@ -312,17 +306,12 @@ function updateGazeCursorState() {
             UI.vrBtnRestartText.setAttribute('value', 'GAME OVER\nTRIGGER TO RESTART');
         }
     } else {
-        // Enable gaze cursor raycasting and show it
-        if (UI.gazeCursor) {
-            UI.gazeCursor.setAttribute('raycaster', 'objects', '.target');
-            UI.gazeCursor.setAttribute('visible', 'true');
-        }
-        // Update VR overlay button text back to gaze
+        // Update VR overlay button text to click
         if (UI.vrBtnStartText) {
-            UI.vrBtnStartText.setAttribute('value', 'LOOK AT TO START');
+            UI.vrBtnStartText.setAttribute('value', 'CLICK TO START');
         }
         if (UI.vrBtnRestartText) {
-            UI.vrBtnRestartText.setAttribute('value', 'GAME OVER\nLOOK TO RESTART');
+            UI.vrBtnRestartText.setAttribute('value', 'GAME OVER\nCLICK TO RESTART');
         }
     }
 }
@@ -335,13 +324,13 @@ function initGame() {
         const idx = parseInt(el.getAttribute('data-node'), 10);
         game.nodes[idx].element = el;
         
-        // Target whacking event (A-Frame dispatch 'click' via controller trigger or fuse gaze)
+        // Target whacking event (A-Frame dispatch 'click' via controller trigger or mouse click)
         el.addEventListener('click', () => {
             onNodeZap(idx);
         });
     });
 
-    // Wire Start and Restart actions (both desktop button click & gaze/controller triggers)
+    // Wire Start and Restart actions (both desktop button click & controller triggers)
     UI.btnStart.addEventListener('click', startGame);
     UI.btnRestart.addEventListener('click', startGame);
     
@@ -363,11 +352,11 @@ function initGame() {
     if (UI.leftHand) {
         UI.leftHand.addEventListener('controllerconnected', () => {
             leftConnected = true;
-            updateGazeCursorState();
+            updateInputState();
         });
         UI.leftHand.addEventListener('controllerdisconnected', () => {
             leftConnected = false;
-            updateGazeCursorState();
+            updateInputState();
         });
         UI.leftHand.addEventListener('triggerdown', () => {
             if (game.active) audio.playLaserShoot();
@@ -376,11 +365,11 @@ function initGame() {
     if (UI.rightHand) {
         UI.rightHand.addEventListener('controllerconnected', () => {
             rightConnected = true;
-            updateGazeCursorState();
+            updateInputState();
         });
         UI.rightHand.addEventListener('controllerdisconnected', () => {
             rightConnected = false;
-            updateGazeCursorState();
+            updateInputState();
         });
         UI.rightHand.addEventListener('triggerdown', () => {
             if (game.active) audio.playLaserShoot();
