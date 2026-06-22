@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gravity Sorter - VR Space Salvage</title>
+    <meta name="description" content="A physics-puzzle arcade game in WebVR. Pull, capture, and fling space debris into color-coded chutes.">
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Game Styling -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN (Version 1.6.0) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D HTML Dashboard Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">Salvage Bay 9</div>
+            <h1>Gravity Sorter</h1>
+            <p class="subtitle">Welcome to your shift, operator. Float debris is drifting past our salvage bay. Use your gravity tractor beam to attract objects and fling them into the correct disposal chutes!</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="color-swatch swatch-red"></div>
+                    <div class="guide-text">
+                        <h4>Red Chute (Left)</h4>
+                        <p>Scrap Metal & Fuel Canisters</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-blue"></div>
+                    <div class="guide-text">
+                        <h4>Blue Chute (Right)</h4>
+                        <p>Energy Cells & Electronics</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-yellow"></div>
+                    <div class="guide-text">
+                        <h4>Yellow Chute (Center-Bottom)</h4>
+                        <p>Radioactive Isotopes</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-primary">Commence Salvage</button>
+            <div class="status-msg">Hold click & drag to fling on Desktop. Grip/Trigger in VR.</div>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-red), var(--neon-purple)); box-shadow: 0 0 15px var(--neon-red-glow);">Shift Completed</div>
+            <h1>Shift Report</h1>
+            <p class="subtitle">The local orbital sector is clear of debris. Let's see your salvage statistics.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Sorted Debris:</span>
+                    <span id="stat-final-count" class="stats-value">0 items</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Total Mass Sorted:</span>
+                    <span id="stat-final-mass" class="stats-value">0 kg</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Shift Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Sector High Score:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🚀 NEW SECTOR RECORD SET! 🚀</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-primary">Start Next Shift</button>
+        </div>
+    </div>
+
+    <!-- HUD Overlay for desktop screens -->
+    <div id="hud" class="hud-container hidden">
+        <div class="hud-left">
+            <div class="hud-panel">
+                <span class="hud-label">Sorted Mass</span>
+                <span id="hud-mass-val" class="hud-value">0 kg</span>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-label">Score</span>
+                <span id="hud-score-val" class="hud-value">0</span>
+            </div>
+        </div>
+        
+        <!-- Feedback indicator center of HUD -->
+        <div id="hud-feedback">SUCCESS!</div>
+
+        <div class="hud-right">
+            <div class="hud-panel">
+                <span class="hud-label">Streak Multiplier</span>
+                <span id="hud-streak-val" class="hud-value">x1</span>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-label">Shift Timer</span>
+                <span id="hud-time-val" class="hud-value">90.0s</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reticle instructions fallback for Desktop click controls -->
+    <div id="desktop-instruction" class="gaze-reticle-instruction hidden">
+        Aim: Mouse | Click & Hold: Tractor Beam | Flick & Release: Fling Debris
+    </div>
+
+    <!-- 3D Scene Viewport -->
+    <div id="scene-container">
+        <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+            <a-assets></a-assets>
+
+            <!-- Lighting -->
+            <a-entity light="type: ambient; color: #100e26; intensity: 0.5"></a-entity>
+            <!-- Blueish main lights reflecting off metal walls -->
+            <a-entity light="type: directional; color: #00ccff; intensity: 0.8" position="-4 6 -2"></a-entity>
+            <a-entity light="type: directional; color: #8b5cf6; intensity: 0.7; castShadow: false" position="4 4 -3"></a-entity>
+            <!-- A subtle light that shines back from the window -->
+            <a-entity light="type: directional; color: #ffffff; intensity: 0.4" position="0 2 -8"></a-entity>
+
+            <!-- Space Background (Stars and Dust) -->
+            <a-sky color="#030206"></a-sky>
+            <a-entity id="starfield"></a-entity>
+
+            <!-- ========================================== -->
+            <!-- 3D INDUSTRIAL SALVAGE BAY ENVIRONMENT -->
+            <!-- ========================================== -->
+            
+            <!-- Floor / Deck plate -->
+            <a-plane position="0 0 0" rotation="-90 0 0" width="30" height="20" color="#111116" material="roughness: 0.85; metalness: 0.7"></a-plane>
+            <!-- Wireframe overlay on deck plate for floor grids -->
+            <a-plane position="0 0.005 0" rotation="-90 0 0" width="30" height="20" color="#8b5cf6" wireframe="true" material="shader: flat; opacity: 0.07"></a-plane>
+
+            <!-- Left and Right Bay Walls -->
+            <a-box position="-6 4 -1" width="0.2" height="8" depth="15" color="#1a1a24" material="roughness: 0.7; metalness: 0.8"></a-box>
+            <a-box position="6 4 -1" width="0.2" height="8" depth="15" color="#1a1a24" material="roughness: 0.7; metalness: 0.8"></a-box>
+            
+            <!-- Ceiling -->
+            <a-plane position="0 5 -1" rotation="90 0 0" width="12" height="15" color="#14141d" material="roughness: 0.9; metalness: 0.6"></a-plane>
+            
+            <!-- Back Wall (behind player) -->
+            <a-box position="0 4 4" width="12" height="8" depth="0.2" color="#101018" material="roughness: 0.8; metalness: 0.5"></a-box>
+
+            <!-- FRONT HANGAR ARCHWAY AND WINDOW FRAME -->
+            <!-- Solid borders around the window looking out to space -->
+            <a-box position="-4.5 2.5 -4" width="3.5" height="5" depth="0.5" color="#1a1a24" material="roughness: 0.6; metalness: 0.8"></a-box> <!-- Left frame -->
+            <a-box position="4.5 2.5 -4" width="3.5" height="5" depth="0.5" color="#1a1a24" material="roughness: 0.6; metalness: 0.8"></a-box> <!-- Right frame -->
+            <a-box position="0 4.25 -4" width="6" height="1.5" depth="0.5" color="#1a1a24" material="roughness: 0.6; metalness: 0.8"></a-box> <!-- Top frame -->
+            <a-box position="0 0.45 -4" width="6" height="0.9" depth="0.5" color="#1a1a24" material="roughness: 0.6; metalness: 0.8"></a-box> <!-- Bottom frame -->
+            <!-- Heavy structural columns -->
+            <a-cylinder position="-3 2.5 -3.9" radius="0.12" height="5" color="#121217" material="roughness: 0.5; metalness: 0.9"></a-cylinder>
+            <a-cylinder position="3 2.5 -3.9" radius="0.12" height="5" color="#121217" material="roughness: 0.5; metalness: 0.9"></a-cylinder>
+
+            <!-- Console panel in front of player (z = -1.2) -->
+            <a-box position="0 0.85 -1.2" width="1.4" height="0.2" depth="0.5" color="#161622" rotation="20 0 0" material="roughness: 0.4; metalness: 0.8">
+                <!-- Start Button Console Mount -->
+                <a-box id="console-start-base" position="0 0.1 0" width="0.4" height="0.05" depth="0.2" color="#09090f"></a-box>
+                <!-- 3D Commence Salvage Button -->
+                <a-cylinder id="btn-3d-start" class="debris-clickable" position="0 0.15 0" radius="0.09" height="0.08" color="#00ff66" material="roughness: 0.2; metalness: 0.9; emissive: #00ff66; emissiveIntensity: 0.3"
+                            animation__hover="property: position; to: 0 0.13 0; dur: 150; startEvents: mouseenter"
+                            animation__leave="property: position; to: 0 0.15 0; dur: 150; startEvents: mouseleave"
+                            animation__click="property: scale; from: 1 1 1; to: 1 0.4 1; dur: 100; startEvents: click">
+                </a-cylinder>
+                <a-entity text="value: COMMENCE\nSALVAGE; align: center; width: 0.9; color: #ffffff; wrapCount: 16" position="0 0.16 0.15" rotation="-90 0 0"></a-entity>
+            </a-box>
+
+            <!-- ========================================== -->
+            <!-- DISPOSAL CHUTES (TARGET ZONES) -->
+            <!-- ========================================== -->
+            
+            <!-- Red Chute (Left) - SCRAP / FUEL -->
+            <a-entity id="chute-red-group" position="-1.8 1.4 -2.6" rotation="0 35 0">
+                <a-torus class="debris-clickable" radius="0.45" radius-tubular="0.035" color="#ff3366" material="roughness: 0.1; metalness: 0.95; emissive: #ff3366; emissiveIntensity: 0.8"></a-torus>
+                <!-- Chute center visual core (semi-transparent shield) -->
+                <a-cylinder radius="0.42" height="0.02" rotation="90 0 0" color="#ff3366" material="transparent: true; opacity: 0.25; shader: flat"></a-cylinder>
+                <!-- Neon ring backing glow -->
+                <a-entity light="type: point; color: #ff3366; intensity: 0.8; distance: 2" position="0 0 0.1"></a-entity>
+                <!-- 3D Text Label -->
+                <a-entity text="value: RED CHUTE\n[SCRAP METAL]; align: center; width: 2.2; color: #ff3366; wrapCount: 18; font: sourcecodepro" position="0 0.65 0" rotation="0 0 0"></a-entity>
+            </a-entity>
+
+            <!-- Blue Chute (Right) - ELECTRONICS / CELL -->
+            <a-entity id="chute-blue-group" position="1.8 1.4 -2.6" rotation="0 -35 0">
+                <a-torus class="debris-clickable" radius="0.45" radius-tubular="0.035" color="#00ccff" material="roughness: 0.1; metalness: 0.95; emissive: #00ccff; emissiveIntensity: 0.8"></a-torus>
+                <a-cylinder radius="0.42" height="0.02" rotation="90 0 0" color="#00ccff" material="transparent: true; opacity: 0.25; shader: flat"></a-cylinder>
+                <a-entity light="type: point; color: #00ccff; intensity: 0.8; distance: 2" position="0 0 0.1"></a-entity>
+                <a-entity text="value: BLUE CHUTE\n[ELECTRONICS]; align: center; width: 2.2; color: #00ccff; wrapCount: 18; font: sourcecodepro" position="0 0.65 0" rotation="0 0 0"></a-entity>
+            </a-entity>
+
+            <!-- Yellow Chute (Lower Center) - ISOTOPE / RADIOACTIVE -->
+            <a-entity id="chute-yellow-group" position="0 0.45 -2.1" rotation="-40 0 0">
+                <a-torus class="debris-clickable" radius="0.42" radius-tubular="0.035" color="#ffcc00" material="roughness: 0.1; metalness: 0.95; emissive: #ffcc00; emissiveIntensity: 0.8"></a-torus>
+                <a-cylinder radius="0.39" height="0.02" rotation="90 0 0" color="#ffcc00" material="transparent: true; opacity: 0.25; shader: flat"></a-cylinder>
+                <a-entity light="type: point; color: #ffcc00; intensity: 0.8; distance: 2" position="0 0 0.1"></a-entity>
+                <a-entity text="value: YELLOW CHUTE\n[ISOTOPES]; align: center; width: 1.8; color: #ffcc00; wrapCount: 16; font: sourcecodepro" position="0 0.55 0" rotation="0 0 0"></a-entity>
+            </a-entity>
+
+            <!-- ========================================== -->
+            <!-- 3D IN-WORLD HOLOGRAPHIC HUD SCREEN -->
+            <!-- ========================================== -->
+            <a-entity id="hologram-hud" position="0 2.25 -2.5" rotation="15 0 0">
+                <!-- Screen Glass pane -->
+                <a-plane width="1.6" height="0.8" color="#8b5cf6" material="transparent: true; opacity: 0.12; roughness: 0.1; metalness: 0.9" class="debris-clickable"></a-plane>
+                <!-- Neon Purple border frame -->
+                <a-entity line="start: -0.8 0.4 0.01; end: 0.8 0.4 0.01; color: #8b5cf6; opacity: 0.8"></a-entity>
+                <a-entity line="start: 0.8 0.4 0.01; end: 0.8 -0.4 0.01; color: #8b5cf6; opacity: 0.8"></a-entity>
+                <a-entity line="start: 0.8 -0.4 0.01; end: -0.8 -0.4 0.01; color: #8b5cf6; opacity: 0.8"></a-entity>
+                <a-entity line="start: -0.8 -0.4 0.01; end: -0.8 0.4 0.01; color: #8b5cf6; opacity: 0.8"></a-entity>
+                
+                <!-- HUD Dynamic Text Components -->
+                <a-entity id="hud-3d-text-time" text="value: SHIFT TIME: --.-s; align: left; width: 1.5; color: #ff3366; font: sourcecodepro" position="-0.7 0.22 0.02"></a-entity>
+                <a-entity id="hud-3d-text-score" text="value: SCORE: 000; align: left; width: 1.5; color: #ffffff; font: sourcecodepro" position="-0.7 0.02 0.02"></a-entity>
+                <a-entity id="hud-3d-text-mass" text="value: MASS: 0 kg; align: left; width: 1.5; color: #00ccff; font: sourcecodepro" position="-0.7 -0.18 0.02"></a-entity>
+            </a-entity>
+
+            <!-- Debris Spawn container -->
+            <a-entity id="debris-container"></a-entity>
+
+            <!-- Tractor Beam Visual Entities (for Left and Right controllers, and Desktop mouse fallback) -->
+            <a-cylinder id="beam-left" radius="0.018" height="1" color="#00ffcc" material="shader: flat; transparent: true; opacity: 0.0" visible="false"></a-cylinder>
+            <a-cylinder id="beam-right" radius="0.018" height="1" color="#00ffcc" material="shader: flat; transparent: true; opacity: 0.0" visible="false"></a-cylinder>
+            <a-cylinder id="beam-mouse" radius="0.015" height="1" color="#00ff99" material="shader: flat; transparent: true; opacity: 0.0" visible="false"></a-cylinder>
+
+            <!-- ========================================== -->
+            <!-- PLAYER RIG: CAMERA & VR CONTROLLERS -->
+            <!-- ========================================== -->
+            <a-entity id="rig" position="0 0 0">
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                    <!-- Reticle (only active/visible on mobile/desktop without controllers) -->
+                    <a-cursor id="gaze-reticle" 
+                              raycaster="objects: .debris-clickable, .debris; far: 50"
+                              material="color: #00ccff; shader: flat; transparent: true; opacity: 0.8" 
+                              geometry="radiusInner: 0.008; radiusOuter: 0.015"
+                              position="0 0 -1">
+                    </a-cursor>
+                </a-camera>
+
+                <!-- Left Controller (with laser line and raycaster) -->
+                <a-entity id="left-controller" 
+                          laser-controls="hand: left" 
+                          raycaster="objects: .debris-clickable, .debris; far: 50; showLine: false" 
+                          line="color: #8b5cf6; opacity: 0.4">
+                </a-entity>
+
+                <!-- Right Controller (with laser line and raycaster) -->
+                <a-entity id="right-controller" 
+                          laser-controls="hand: right" 
+                          raycaster="objects: .debris-clickable, .debris; far: 50; showLine: false" 
+                          line="color: #8b5cf6; opacity: 0.4">
+                </a-entity>
+            </a-entity>
+
+            <!-- Mouse Raycaster for desktop users -->
+            <a-entity id="mouse-cursor" cursor="rayOrigin: mouse" raycaster="objects: .debris-clickable, .debris; far: 50"></a-entity>
+        </a-scene>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
