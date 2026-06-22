@@ -9,6 +9,8 @@
 class SoundEngine {
     constructor() {
         this.ctx = null;
+        this.musicPlaying = false;
+        this.musicIntervalId = null;
     }
 
     init() {
@@ -20,6 +22,62 @@ class SoundEngine {
         this.init();
         if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
+        }
+    }
+
+    startAmbientMusic() {
+        this.resume();
+        if (!this.ctx || this.musicPlaying) return;
+        this.musicPlaying = true;
+        
+        const playSwell = () => {
+            if (!this.musicPlaying || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            
+            // Zen chord progression (soft swells)
+            const chords = [
+                [130.81, 196.00, 293.66, 329.63, 392.00], // Cmaj9
+                [174.61, 261.63, 329.63, 440.00, 523.25], // Fmaj7
+                [110.00, 164.81, 261.63, 329.63, 392.00], // Am7
+                [97.99, 146.83, 246.94, 329.63, 392.00]   // G6
+            ];
+            
+            const chord = chords[Math.floor(Math.random() * chords.length)];
+            const attack = 2.5;
+            const sustain = 3.0;
+            const release = 2.5;
+            const duration = attack + sustain + release;
+            
+            chord.forEach((freq) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                // Add soft detune for thick lush vibe
+                osc.frequency.setValueAtTime(freq + (Math.random() - 0.5) * 1.0, t);
+                
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.015, t + attack);
+                gain.gain.setValueAtTime(0.015, t + attack + sustain);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start(t);
+                osc.stop(t + duration + 0.1);
+            });
+        };
+        
+        playSwell();
+        this.musicIntervalId = setInterval(playSwell, 7500);
+    }
+    
+    stopAmbientMusic() {
+        this.musicPlaying = false;
+        if (this.musicIntervalId) {
+            clearInterval(this.musicIntervalId);
+            this.musicIntervalId = null;
         }
     }
 
@@ -235,17 +293,18 @@ const game = {
     currentTargetColor: '',
     targetCubesRemaining: 0,
     timerId: null,
+    planeRotation: { x: 0, y: 0, z: 0 },
     
     // Baselines for coordinates of 8 orbital cubes
     cubeBaselines: [
-        { x: 0.7, y: 0, z: 0 },
-        { x: 0.495, y: 0.495, z: 0 },
-        { x: 0, y: 0.7, z: 0 },
-        { x: -0.495, y: 0.495, z: 0 },
-        { x: -0.7, y: 0, z: 0 },
-        { x: -0.495, y: -0.495, z: 0 },
-        { x: 0, y: -0.7, z: 0 },
-        { x: 0.495, y: -0.495, z: 0 }
+        { x: 0.5, y: 0, z: 0 },
+        { x: 0.354, y: 0.354, z: 0 },
+        { x: 0, y: 0.5, z: 0 },
+        { x: -0.354, y: 0.354, z: 0 },
+        { x: -0.5, y: 0, z: 0 },
+        { x: -0.354, y: -0.354, z: 0 },
+        { x: 0, y: -0.5, z: 0 },
+        { x: 0.354, y: -0.354, z: 0 }
     ]
 };
 
@@ -322,9 +381,27 @@ AFRAME.registerComponent('space-animate', {
             }
         }
         
-        // 2. Slow clock-like rotation of the orbital group around the viewer axis (Z)
+        // 2. Clock-like rotation of the orbital group
         if (UI.puzzleGroup && game.active) {
-            UI.puzzleGroup.setAttribute('rotation', `0 0 ${t * 10}`);
+            const dt = timeDelta * 0.001; // seconds
+            const wave = game.wave || 1;
+            let rx = 0;
+            let ry = 0;
+            let rz = 10; // base Z rate
+
+            if (wave > 1) {
+                // Plane tilts and rotates around all axes (dynamic wobble)
+                rx = (wave - 1) * 3; // X rotation speed
+                ry = (wave - 1) * 4; // Y rotation speed
+                rz = 10 + (wave - 1) * 5; // Z rotation speed
+            }
+
+            // Accumulate rotation angles smoothly
+            game.planeRotation.x = (game.planeRotation.x + rx * dt) % 360;
+            game.planeRotation.y = (game.planeRotation.y + ry * dt) % 360;
+            game.planeRotation.z = (game.planeRotation.z + rz * dt) % 360;
+
+            UI.puzzleGroup.setAttribute('rotation', `${game.planeRotation.x} ${game.planeRotation.y} ${game.planeRotation.z}`);
             
             // 3. Make individual cubes spin on their own local axes
             const cubes = document.querySelectorAll('.color-cube');
@@ -371,6 +448,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Toggle gaze reticle depending on VR entry/exit
     sceneEl.addEventListener('enter-vr', () => {
+        audio.resume();
+        audio.startAmbientMusic();
         UI.panelStart.classList.add('hidden');
         UI.panelGameOver.classList.add('hidden');
         UI.hud.classList.add('hidden');
@@ -484,8 +563,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate initial Highscore display
     UI.statHighScore.innerText = game.highscore;
     
-    // Audio resume on click anywhere
-    document.body.addEventListener('pointerdown', () => audio.resume());
+    // Audio resume on click anywhere and start zen music
+    document.body.addEventListener('pointerdown', () => {
+        audio.resume();
+        audio.startAmbientMusic();
+    });
 });
 
 // ==========================================
@@ -501,6 +583,12 @@ function startGame() {
     game.wave = 0;
     game.timeRemaining = 20.0;
     game.active = true;
+    game.planeRotation = { x: 0, y: 0, z: 0 };
+
+    // Reset puzzle group rotation to zero tilt
+    if (UI.puzzleGroup) {
+        UI.puzzleGroup.setAttribute('rotation', '0 0 0');
+    }
     
     // Hide Overlays
     UI.panelStart.classList.add('hidden');
@@ -534,6 +622,16 @@ function startGame() {
 
 function generateWave() {
     game.wave++;
+    
+    // Sync the accumulated rotation state with the actual post-animation rotation values
+    if (UI.puzzleGroup) {
+        const currentRot = UI.puzzleGroup.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
+        game.planeRotation = {
+            x: currentRot.x || 0,
+            y: currentRot.y || 0,
+            z: currentRot.z || 0
+        };
+    }
     
     // Select a random target color
     const targetColor = COLORS[Math.floor(Math.random() * COLORS.length)];
