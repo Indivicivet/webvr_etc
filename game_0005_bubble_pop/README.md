@@ -1,15 +1,15 @@
 # Zen Bubble Popper (WebVR Game 0005)
 
-A relaxing, satisfying gaze-driven WebVR game set in a peaceful garden. Stand before a cobblestone pebble pond and pop translucent, shimmering bubbles as they drift upward.
+A relaxing, satisfying WebVR game set in a peaceful garden. Stand before a cobblestone pebble pond and pop translucent, shimmering bubbles as they drift upward.
 
-Optimized for **WebXR VR Headsets** (via gaze cursors) and fully playable on **Desktop** and **Mobile** browsers.
+Optimized for **WebXR VR Headsets** (via tracked controllers and gaze fallback) and fully playable on **Desktop** and **Mobile** browsers.
 
 ---
 
 ## 🌸 Visuals & Aesthetics
 
-- **Peaceful Garden Setting**: Features a circular grass meadow, low-poly cherry blossom trees, far-off mountains, and soft clouds drifting across a morning sky.
-- **Translucent Bubbles**: Shiny, translucent spheres styled with high reflectivity (`roughness: 0.05`, `metalness: 0.95`) and transparency.
+- **Peaceful Garden Setting**: Features a circular grass meadow, low-poly cherry blossom trees, far-off mountains, soft clouds drifting across a morning sky, glowing Japanese stone lanterns (Toro), lily pads, lotus flowers, and surrounding pine trees.
+- **Translucent Bubbles**: Shiny, translucent spheres styled with high reflectivity (`roughness: 0.05`, `metalness: 0.95`) and transparency, spawning both from the pond and scattered throughout the garden closer and further away.
 - **Particle Droplet Splash**: Popping a bubble generates a burst of 12-18 tiny water droplets that spray outward, experience gravity, and fade away.
 - **Glassmorphic UI**: High-contrast, clean pastel interfaces using the *Outfit* typeface. Includes a 3D in-world floating dashboard for VR players.
 
@@ -41,13 +41,20 @@ Built entirely with the **HTML5 Web Audio API**—no external audio assets requi
 
 ## 🕹️ Controls
 
-1. **Gaze-Only (VR Headsets)**:
-   - Look around to center your reticle over bubbles or the 3D Start/Restart buttons.
-   - Interaction is **instant (0ms fuse)**—no countdown timer. Hovering over a bubble pops it immediately.
-2. **Desktop (Keyboard & Mouse)**:
+1. **VR Tracked Controllers (Recommended for VR)**:
+   - **Aiming**: Point either controller at a bubble or 3D Start/Restart button (rendered as laser pointers).
+   - **Popping / Interacting**: Pull the Trigger button on either controller.
+   - **Locomotion (Movement)**:
+     - **Grip-Steer**: Hold the Grip button on either controller and point it in the direction you want to walk.
+     - **Thumbstick/Trackpad**: Move the thumbstick/trackpad on either controller for standard smooth locomotion relative to the direction you are facing.
+2. **Gaze-Only (VR Headsets without Controllers)**:
+   - Look around to center your camera reticle over bubbles or the 3D Start/Restart buttons.
+   - Hovering over a bubble pops it immediately (instant 0ms fuse).
+3. **Desktop (Keyboard & Mouse)**:
    - Click and drag the mouse on the screen to look around.
    - Hover the center reticle over bubbles to pop them.
-3. **Mobile (Gaze/Tilt/Drag)**:
+   - Use **WASD** keys to move around the garden.
+4. **Mobile (Gaze/Tilt/Drag)**:
    - Drag your finger on the screen or look around (if gyro is enabled) to center your cursor over bubbles.
 
 ---
