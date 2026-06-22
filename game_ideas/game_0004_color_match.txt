@@ -6,17 +6,25 @@ GAME DESIGN SKETCH: CHROMATIC GAZE MATCHER (0004)
 --------------------------------------------------------------------------------
 A cozy, casual color-matching puzzle game. The player faces a floating cluster of 
 colored cubes surrounding a central "target sphere". The target sphere pulses with 
-a specific color (e.g., neon purple). The player must gaze at the matching purple 
-cubes to clear them from the field before the time runs out.
+a specific color (e.g., neon purple). The player must match the colored cubes to the 
+target sphere to clear them from the field before the time runs out.
 
 2. HARDWARE CONSTRAINTS & ACCESSIBILITY
 --------------------------------------------------------------------------------
-* Controls: 100% Gaze-Only. A gaze fuse cursor (400ms hover duration) acts as the 
-  action trigger.
-* Field of View (FoV): Optimized for 60-degree FoV. The entire puzzle board fits 
-  within a compact circular cluster spanning 30 degrees, minimizing head movements.
-* Comfort: Completely stationary. Gentle ambient float animations on the shapes 
-  provide visual texture without causing discomfort.
+* Controls: We initially tried 100% Gaze-Only (where a gaze fuse cursor acts as the 
+  action trigger), but it was updated to support WebXR VR controllers (using laser 
+  pointer rays and trigger clicks) as the primary input when available. It dynamically 
+  falls back to the 400ms head-gaze fuse cursor if no controllers are connected, 
+  ensuring accessibility across all headsets.
+* Field of View (FoV): Optimized for smaller fields of view. We initially positioned 
+  the orbital cubes at a 0.7m radius, but it was scaled down to a compact 0.5m radius 
+  circle (with cube sizes reduced from 0.14m to 0.11m) so that the entire board fits 
+  snuggly within a smaller FOV and reduces required eye strain or excessive head movement.
+* Comfort: Completely stationary camera position. The orbit plane tilt and rotation 
+  provide dynamic 3D depth, but the player remains at (0, 0, 0), avoiding any motion comfort concerns.
+* Background Music: Continuously playing ambient zen chord swells synthesized via 
+  the Web Audio API (sine waves with slow attack and release), keeping the audio 
+  experience self-contained and cozy.
 
 3. VISUAL LAYOUT
 --------------------------------------------------------------------------------
@@ -26,58 +34,60 @@ cubes to clear them from the field before the time runs out.
   slowly breathes light in the target color.
 * Puzzle Grid: 8 smaller cubes orbiting the target sphere, colored randomly in 
   shades of cyan, purple, magenta, and yellow.
+  - We initially tried simple 2D rotation of the orbital group around the Z-axis only. 
+    However, to make gameplay more dynamic and immersive as players progress, we updated 
+    it: in Wave 1, the orbit plane remains flat in the X-Y plane (no tilt). In Wave 2 and 
+    beyond, the orbit plane tilts and rotates around all three axes (X, Y, Z), with the 
+    rotation speed increasing dynamically with each round (wobbling in 3D), while individual 
+    cubes continue to spin at their normal rate on their local axes.
 
 4. CORE GAMEPLAY LOOP
 --------------------------------------------------------------------------------
-1. Start Screen: Gaze at the glowing "BEGIN" ring above the target sphere.
+1. Start Screen: Trigger the glowing "LOOK TO START / START" ring in VR or click "Begin Match" on desktop.
 2. Wave Start: The target sphere turns a specific color (e.g., Cyan). The 8 orbital 
    cubes are assigned random colors (3 cyan, 5 others).
-3. Player Action: Player looks at a Cyan cube. The fuse cursor fills up.
-4. Correct Match: If the player successfully fuses a matching cube:
-   - Cube scales down to zero with a satisfying chime sound.
-   - Cleared cube is removed from the active count.
-5. Incorrect Match: If the player gazes at a non-matching cube:
-   - Play a soft buzzer sound.
-   - The cube shakes and locks out for 1 second.
-   - Score multiplier is reset.
-6. Wave Complete: Once all matching cubes are cleared, the remaining cubes shuffle, 
-   and a new target color is set.
+3. Player Action: Player aims a VR controller ray or looks at a Cyan cube.
+4. Correct Match: If the player successfully clicks or fuses a matching cube:
+   - Play a correct chime sound and trigger a controller haptic rumble.
+   - Cube scales down to zero and is removed from the active count.
+5. Incorrect Match: If the player selects a non-matching cube:
+   - Play a soft buzzer sound and trigger a double controller haptic warning pulse.
+   - The cube shakes and locks out for 1 second, and the score multiplier resets.
+6. Wave Complete: Once all matching cubes are cleared, the remaining cubes spin rapidly, 
+   shuffle, and a new target color is set.
 7. Timer: The player has 20 seconds per wave. Clearing a matching cube adds 2 seconds.
 
 5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
 --------------------------------------------------------------------------------
 * Scene Layout:
   `<a-scene>`
-    `<a-camera>`
-      `<a-cursor fuse="true" fuse-timeout="400" material="color: white; shader: flat"></a-cursor>`
-    `</a-camera>`
+    `<a-entity id="rig" position="0 0 0">`
+      `<a-camera id="camera" look-controls="pointerLockEnabled: false" ...>`
+        `<a-cursor id="gaze-cursor" fuse="true" fuse-timeout="400" ...></a-cursor>`
+      `</a-camera>`
+      `<a-entity id="left-controller" laser-controls="hand: left" raycaster="objects: .target" ...></a-entity>`
+      `<a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .target" ...></a-entity>`
+    `</a-entity>`
     
     `<!-- Central Target -->`
-    `<a-sphere id="target-sphere" position="0 1 -2" radius="0.3" material="color: magenta; emissive: magenta; emissiveIntensity: 0.5"></a-sphere>`
+    `<a-sphere id="target-sphere" position="0 1.4 -2" radius="0.25" ...></a-sphere>`
     
-    `<!-- Orbital Cubes (arranged in a circle around target) -->`
-    `<a-entity id="puzzle-group" position="0 1 -2">`
-      `<a-box class="color-cube" position="0.8 0 0" ...></a-box>`
-      `<a-box class="color-cube" position="0.56 0.56 0" ...></a-box>`
+    `<!-- Orbital Cubes (arranged in a circle of radius 0.5 around target) -->`
+    `<a-entity id="puzzle-group" position="0 1.4 -2">`
+      `<a-box class="color-cube" position="0.5 0 0" width="0.11" ...></a-box>`
+      `<a-box class="color-cube" position="0.354 0.354 0" width="0.11" ...></a-box>`
       `<!-- Repeat for other 6 coordinates -->`
     `</a-entity>`
   `</a-scene>`
 
 * Scripting State:
-  - Colors array: `['#00ffff', '#ff00ff', '#ffff00', '#ff007f']` (Cyan, Magenta, Yellow, Pink).
+  - Colors array: `['#00f3ff', '#ff007f', '#ffff00', '#9d00ff']` (Cyan, Magenta, Yellow, Purple).
   - Target Color: randomly selected from the array.
-  - On each wave, assign colors to elements:
-    `let cubes = document.querySelectorAll('.color-cube');`
-    `cubes.forEach(cube => {`
-       `let randomColor = colors[Math.floor(Math.random() * colors.length)];`
-       `cube.setAttribute('material', 'color', randomColor);`
-    `});`
-  - Gaze Handler:
-    `cube.addEventListener('click', (e) => {`
-       `let cubeColor = cube.getAttribute('material').color;`
-       `if (cubeColor === currentTargetColor) {`
-          `// Match! Animate and remove`
-       `} else {`
-          `// Shake animation`
-       `}`
-    `});`
+  - Plane Rotation Accumulator: `game.planeRotation = { x: 0, y: 0, z: 0 }`.
+  - Ambient Music Synth: soft swells triggered via periodic `AudioContext` sine node creation.
+  - Multi-Axis Rotation: frame-rate independent rotation in `tick`:
+    `let rx = (wave - 1) * 3;`
+    `let ry = (wave - 1) * 4;`
+    `let rz = 10 + (wave - 1) * 5;`
+    `game.planeRotation.x = (game.planeRotation.x + rx * dt) % 360;`
+    `// Apply combined angles to puzzleGroup rotation attribute`

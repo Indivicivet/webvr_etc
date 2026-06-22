@@ -12,11 +12,12 @@ just by looking around.
 
 2. HARDWARE CONSTRAINTS & ACCESSIBILITY
 --------------------------------------------------------------------------------
-* Controls: 100% Gaze-responsive. No buttons or triggers. The game continuously 
-  tracks which musical node the reticle is hovering over.
-* Field of View (FoV): Designed for a 60-degree FoV. The 4 nodes are arranged in 
-  a neat horizontal arc directly in front of the player (spaced about 15 degrees 
-  apart).
+* Controls: We initially tried a 100% gaze-responsive setup with no buttons, but 
+  it needed changing to allow active VR controller laser aiming and trigger clicks 
+  (as well as mouse clicks on desktop) to enable tactile and expressive play.
+* Field of View (FoV): We initially tried placing the nodes closer (around z=-2.7m), 
+  but it needed changing to fit within smaller FoV headsets. Nodes are now 
+  positioned further away (z=-3.5m to -3.9m) and scaled down by ~20%.
 * Comfort: Completely stationary. Gentle audio-reactive animations on the nodes 
   correlate to the volume/frequency of the respective track.
 
@@ -32,26 +33,29 @@ just by looking around.
 
 4. CORE GAMEPLAY LOOP
 --------------------------------------------------------------------------------
-1. Setup: A loop of a multi-track electronic song plays. Initially, all stems 
-   are muted except the Drums.
-2. Focus: When the player gazes at a node:
+1. Setup: A multi-track electronic sequence runs. Initially, all stems are muted 
+   except the Drums (at 15% floor volume).
+2. Focus: When the player gazes at a node or points a controller at it:
    - The node lights up and begins to spin faster.
-   - The volume of that instrument track ramps up smoothly from 0% to 100% (fade-in).
-   - An audio lowpass filter sweeps open, adding brightness.
+   - The volume ramps up smoothly over ~3 seconds.
+   - An audio lowpass filter sweeps open.
 3. Looking Away: When the player looks away:
-   - The volume slowly fades back down to a quiet ambient level (e.g., 10% volume) 
-     or filters sweep closed.
-4. "Solo" Challenge Mode: A customer order or "recipe" sequence flashes on screen 
-   (e.g., "DRUM + LEAD"). The player must coordinate their gaze or sweep back and 
-   forth between nodes to maintain the correct combination of active instruments 
-   to match the rhythm prompt.
+   - We initially tried a fast volume fade-down (e.g. 0.6s), but it needed changing 
+     to allow more complex layered mixing. Tracks now fade out gradually over ~10s.
+4. Trigger Enhancement: Pointing a controller at a node and clicking the trigger 
+   briefly plays an enhanced, syncopated harmonizing overlay riff for 2 bars (32 steps), 
+   accompanied by a neon white visual flash on the floor rings.
+5. "Solo" Challenge Mode: A customer order or "recipe" sequence flashes on screen 
+   (e.g., "DRUM + LEAD"). The player must coordinate their gaze/aim to maintain the 
+   correct combination of active instruments to match the rhythm prompt.
 
 5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
 --------------------------------------------------------------------------------
 * Web Audio API:
-  Load 4 synchronized audio elements looping in parallel.
-  `const drumTrack = new Audio('drums.mp3'); drumTrack.loop = true; drumTrack.play();`
-  Use Web Audio API GainNodes to control the volume of each element individually.
+  We initially tried loading static mp3 loops, but it needed changing to ensure 
+  perfect sample-accurate sync and flexible riff layering. We now synthesize all 
+  stems (drums, bass, synth, lead) in real-time using a custom Web Audio API 
+  synthesis oscillator engine.
 
 * A-Frame Elements:
   `<a-scene>`
