@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Neon Punch VR - Synthwave Rhythm Arcade</title>
+    <meta name="description" content="A high-intensity synthwave WebVR rhythm game. Punch oncoming neon orbs in an octagonal tunnel. Hostable on GitHub Pages.">
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library CDN -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- 2D HUD and Overlay Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Game Panel -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">Beat Saber Arcade</div>
+            <h1>Neon Punch VR</h1>
+            <p class="subtitle">Stand ready at the end of the octagonal tunnel. Use rapid punches to shatter oncoming neon target orbs in sync with the beat. Play in immersive VR or on desktop with mouse aiming.</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="guide-indicator guide-pink"></div>
+                    <div class="guide-item-text">
+                        <h3>Pink Targets (Left Side)</h3>
+                        <p>Punch with your Left Glove (pink). Spawns on top and left lanes.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-indicator guide-blue"></div>
+                    <div class="guide-item-text">
+                        <h3>Blue Targets (Right Side)</h3>
+                        <p>Punch with your Right Glove (blue). Spawns on bottom and right lanes.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-indicator guide-yellow"></div>
+                    <div class="guide-item-text">
+                        <h3>Golden Beat Boosts</h3>
+                        <p>Hit with the matching hand to trigger a 2x Score Multiplier for 10s!</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-indicator guide-green"></div>
+                    <div class="guide-item-text">
+                        <h3>Shield Chargers (Green)</h3>
+                        <p>Hit with the matching hand to restore 15% of your shield energy.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-indicator guide-red"></div>
+                    <div class="guide-item-text">
+                        <h3>Hazard Mines (Spiked Red)</h3>
+                        <p>DO NOT PUNCH! Let them pass safely. Punching them deals -20% shield damage.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-neon">Launch Beats</button>
+        </div>
+
+        <!-- Game Over Panel -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));">System Overload</div>
+            <h1>Shields Defeated</h1>
+            <p class="subtitle">Your runway shield energy has fully depleted. The neon grid has powered down.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Max Combo:</span>
+                    <span id="stat-max-combo" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Accuracy:</span>
+                    <span id="stat-accuracy" class="stats-value">0%</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">High Score:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-banner" class="new-record-banner hidden">
+                    🎉 NEW HIGH SCORE RECORDED! 🎉
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-neon">Replay</button>
+        </div>
+    </div>
+
+    <!-- 2D HUD for Screen/Desktop Players -->
+    <div id="hud" class="hud-container hidden">
+        <div class="hud-panel">
+            <span class="hud-label">Score</span>
+            <div style="display: flex; align-items: center;">
+                <span id="hud-score-val" class="hud-value">0</span>
+                <span id="hud-multiplier" class="hud-multiplier-badge hidden">2x</span>
+            </div>
+        </div>
+        
+        <div class="hud-panel hud-center">
+            <span class="hud-label">Shield Integrity</span>
+            <div class="shield-bar-container">
+                <div id="shield-bar-fill" class="shield-bar-fill"></div>
+            </div>
+        </div>
+        
+        <div class="hud-panel" style="text-align: right; min-width: 140px;">
+            <span class="hud-label">Combo / Accuracy</span>
+            <span id="hud-combo-val" class="hud-value" style="color: var(--neon-blue);">0</span>
+            <span id="hud-accuracy-val" style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 800; margin-left: 8px;">100%</span>
+        </div>
+    </div>
+
+    <!-- Multiplier Banner Overlay -->
+    <div id="multiplier-banner" class="multiplier-banner hidden">
+        ✨ 2X SCORE MULTIPLIER ACTIVE ✨
+    </div>
+
+    <!-- Desktop Aim Crosshair Follower -->
+    <div id="desktop-aim" class="desktop-aim-indicator"></div>
+
+    <!-- A-Frame 3D VR Scene -->
+    <a-scene id="game-scene" embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+        
+        <a-assets>
+            <!-- Preload assets if needed -->
+        </a-assets>
+
+        <!-- Ambient & Spotlight Lighting -->
+        <a-entity light="type: ambient; color: #12092b; intensity: 0.7"></a-entity>
+        <a-entity light="type: directional; color: #8e58ff; intensity: 0.6" position="0 6 3"></a-entity>
+
+        <!-- Dark Space Atmosphere -->
+        <a-sky color="#04010a"></a-sky>
+
+        <!-- Retro Neon Sun in Distance (z = -25) -->
+        <a-entity id="retro-sun" position="0 2 -25">
+            <!-- Halved rising retro sun -->
+            <a-circle radius="9" color="#ff007f" material="shader: flat; side: double" theta-length="180" rotation="0 0 0"></a-circle>
+            <!-- Sun slice effect using horizontal dark bars -->
+            <a-box position="0 0.8 0.1" width="18" height="0.15" depth="0.02" color="#04010a" material="shader: flat"></a-box>
+            <a-box position="0 1.6 0.1" width="18" height="0.25" depth="0.02" color="#04010a" material="shader: flat"></a-box>
+            <a-box position="0 2.6 0.1" width="18" height="0.4" depth="0.02" color="#04010a" material="shader: flat"></a-box>
+            <a-box position="0 3.8 0.1" width="18" height="0.55" depth="0.02" color="#04010a" material="shader: flat"></a-box>
+            <a-box position="0 5.2 0.1" width="18" height="0.7" depth="0.02" color="#04010a" material="shader: flat"></a-box>
+            
+            <!-- Sun grid light source -->
+            <a-entity light="type: point; color: #ff007f; intensity: 0.8; distance: 20" position="0 1 1"></a-entity>
+        </a-entity>
+
+        <!-- Distant neon grids / mountains -->
+        <a-entity position="0 0 -15" rotation="-90 0 0">
+            <!-- Ground grid extending to horizon -->
+            <a-plane width="60" height="60" color="#9d4edd" wireframe="true" material="shader: flat; opacity: 0.08"></a-plane>
+        </a-entity>
+
+        <!-- THE OCTAGONAL TUNNEL RAILS (z = -15m to z = 0m) -->
+        <a-entity id="tunnel-container">
+            <!-- 8 rails, each positioned at octagon coordinates around center (x=0, y=1.4) with radius R=0.8 -->
+            <!-- Lane 0 (Right, angle=0) -->
+            <a-box position="0.8 1.4 -7.5" rotation="0 0 0" width="0.012" height="0.012" depth="15" color="#00f0ff" material="shader: flat; opacity: 0.6"></a-box>
+            <!-- Lane 1 (Up-Right, angle=45) -->
+            <a-box position="0.566 1.966 -7.5" rotation="0 0 45" width="0.012" height="0.012" depth="15" color="#00f0ff" material="shader: flat; opacity: 0.6"></a-box>
+            <!-- Lane 2 (Up, angle=90) -->
+            <a-box position="0 2.2 -7.5" rotation="0 0 90" width="0.012" height="0.012" depth="15" color="#ff007f" material="shader: flat; opacity: 0.6"></a-box>
+            <!-- Lane 3 (Up-Left, angle=135) -->
+            <a-box position="-0.566 1.966 -7.5" rotation="0 0 135" width="0.012" height="0.012" depth="15" color="#ff007f" material="shader: flat; opacity: 0.6"></a-box>
+            <!-- Lane 4 (Left, angle=180) -->
+            <a-box position="-0.8 1.4 -7.5" rotation="0 0 180" width="0.012" height="0.012" depth="15" color="#ff007f" material="shader: flat; opacity: 0.6"></a-box>
+            <!-- Lane 5 (Down-Left, angle=225) -->
+            <a-box position="-0.566 0.834 -7.5" rotation="0 0 225" width="0.012" height="0.012" depth="15" color="#ff007f" material="shader: flat; opacity: 0.6"></a-box>
+            <!-- Lane 6 (Down, angle=270) -->
+            <a-box position="0 0.6 -7.5" rotation="0 0 270" width="0.012" height="0.012" depth="15" color="#00f0ff" material="shader: flat; opacity: 0.6"></a-box>
+            <!-- Lane 7 (Down-Right, angle=315) -->
+            <a-box position="0.566 0.834 -7.5" rotation="0 0 315" width="0.012" height="0.012" depth="15" color="#00f0ff" material="shader: flat; opacity: 0.6"></a-box>
+        </a-entity>
+
+        <!-- THE HIT GATE (z = -1.2m) -->
+        <a-entity id="hit-gate-container">
+            <!-- White neon arch / octagon border around the hit plane -->
+            <!-- 8 edges linking target centers -->
+            <!-- Left-ish pink rings, Right-ish blue rings -->
+            <!-- Lane 0 -->
+            <a-ring position="0.8 1.4 -1.2" radius-inner="0.1" radius-outer="0.12" color="#00f0ff" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+            <!-- Lane 1 -->
+            <a-ring position="0.566 1.966 -1.2" radius-inner="0.1" radius-outer="0.12" color="#00f0ff" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+            <!-- Lane 2 -->
+            <a-ring position="0 2.2 -1.2" radius-inner="0.1" radius-outer="0.12" color="#ff007f" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+            <!-- Lane 3 -->
+            <a-ring position="-0.566 1.966 -1.2" radius-inner="0.1" radius-outer="0.12" color="#ff007f" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+            <!-- Lane 4 -->
+            <a-ring position="-0.8 1.4 -1.2" radius-inner="0.1" radius-outer="0.12" color="#ff007f" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+            <!-- Lane 5 -->
+            <a-ring position="-0.566 0.834 -1.2" radius-inner="0.1" radius-outer="0.12" color="#ff007f" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+            <!-- Lane 6 -->
+            <a-ring position="0 0.6 -1.2" radius-inner="0.1" radius-outer="0.12" color="#00f0ff" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+            <!-- Lane 7 -->
+            <a-ring position="0.566 0.834 -1.2" radius-inner="0.1" radius-outer="0.12" color="#00f0ff" material="shader: flat; opacity: 0.4; side: double"></a-ring>
+
+            <!-- Translucent hit zone mesh plane representing the evaluation window -->
+            <a-circle position="0 1.4 -1.2" radius="1.1" color="#ffffff" material="shader: flat; opacity: 0.03; side: double; transparent: true"></a-circle>
+        </a-entity>
+
+        <!-- CONTAINER FOR DYNAMIC ENTITIES -->
+        <a-entity id="orb-container"></a-entity>
+        <a-entity id="particle-container"></a-entity>
+
+        <!-- COCKPIT VR HUD (FLOATING DASHBOARD) -->
+        <!-- Placed at chest level and tilted up for VR comfort. Visible only in VR mode -->
+        <a-entity id="vr-hud" position="0 0.8 -1.0" rotation="-30 0 0" visible="false">
+            <!-- Curved dark glass plate -->
+            <a-entity geometry="primitive: plane; width: 1.5; height: 0.5" 
+                      material="color: #0d0621; opacity: 0.75; transparent: true; roughness: 0.1; metalness: 0.8" 
+                      position="0 0 0">
+                <!-- Border lines -->
+                <a-entity geometry="primitive: plane; width: 1.52; height: 0.02" material="color: #9d4edd; shader: flat" position="0 0.25 0.005"></a-entity>
+                <a-entity geometry="primitive: plane; width: 1.52; height: 0.02" material="color: #9d4edd; shader: flat" position="0 -0.25 0.005"></a-entity>
+                
+                <!-- Text contents -->
+                <a-text id="vr-score" value="SCORE: 000000" color="#ffffff" align="center" width="2.2" font="monoid" position="0 0.1 0.01" shader="flat"></a-text>
+                <a-text id="vr-combo" value="COMBO: 0  |  100%" color="#00f0ff" align="center" width="1.8" font="monoid" position="0 -0.04 0.01" shader="flat"></a-text>
+                
+                <!-- Shield status display -->
+                <a-text id="vr-shield-label" value="SHIELD ENERGY" color="#8d58ff" align="center" width="1.4" font="monoid" position="0 -0.14 0.01" shader="flat"></a-text>
+                <a-entity id="vr-shield-bar" geometry="primitive: box; width: 0.8; height: 0.03; depth: 0.01" material="color: #00f0ff; shader: flat" position="0 -0.2 0.01"></a-entity>
+            </a-entity>
+        </a-entity>
+
+        <!-- PLAYERS GLOVES (DESKTOP MODE) -->
+        <!-- Hand representation when on desktop. Animated inside app.js -->
+        <a-entity id="desktop-gloves" visible="true">
+            <a-sphere id="desktop-left-glove" class="glove" radius="0.08" color="#ff007f"
+                      material="shader: standard; roughness: 0.1; metalness: 0.9; opacity: 0.75; transparent: true; emissive: #ff007f; emissiveIntensity: 0.5" 
+                      position="-0.4 1.4 -1.1">
+                <a-light type="point" color="#ff007f" intensity="0.2" distance="1.0"></a-light>
+            </a-sphere>
+            
+            <a-sphere id="desktop-right-glove" class="glove" radius="0.08" color="#00f0ff"
+                      material="shader: standard; roughness: 0.1; metalness: 0.9; opacity: 0.75; transparent: true; emissive: #00f0ff; emissiveIntensity: 0.5" 
+                      position="0.4 1.4 -1.1">
+                <a-light type="point" color="#00f0ff" intensity="0.2" distance="1.0"></a-light>
+            </a-sphere>
+        </a-entity>
+
+        <!-- PLAYER RIG (CAMERA + VR CONTROLLERS) -->
+        <a-entity id="rig" position="0 0 0">
+            <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls-enabled="false" position="0 1.6 0">
+                <!-- Retro Gaze Pointer Reticle (only shows if VR controller disconnected or cursor hover is needed) -->
+                <a-cursor id="reticle"
+                    raycaster="objects: .vr-btn; interval: 100;"
+                    fuse="false"
+                    position="0 0 -1"
+                    geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.018"
+                    material="color: #ffffff; shader: flat; opacity: 0.5; transparent: true">
+                </a-cursor>
+            </a-camera>
+
+            <!-- Immersive VR Controllers with Gloves attached -->
+            <a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .vr-btn; interval: 100; far: 5" line="color: #ff007f; opacity: 0.6">
+                <!-- Pink glove sphere centered on left hand -->
+                <a-sphere class="glove" radius="0.08" color="#ff007f" 
+                          material="shader: standard; roughness: 0.1; metalness: 0.9; opacity: 0.75; transparent: true; emissive: #ff007f; emissiveIntensity: 0.5">
+                    <a-light type="point" color="#ff007f" intensity="0.3" distance="1.5"></a-light>
+                </a-sphere>
+            </a-entity>
+
+            <a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .vr-btn; interval: 100; far: 5" line="color: #00f0ff; opacity: 0.6">
+                <!-- Blue glove sphere centered on right hand -->
+                <a-sphere class="glove" radius="0.08" color="#00f0ff" 
+                          material="shader: standard; roughness: 0.1; metalness: 0.9; opacity: 0.75; transparent: true; emissive: #00f0ff; emissiveIntensity: 0.5">
+                    <a-light type="point" color="#00f0ff" intensity="0.3" distance="1.5"></a-light>
+                </a-sphere>
+            </a-entity>
+        </a-entity>
+
+    </a-scene>
+
+    <!-- Core Game Logic Script -->
+    <script src="./app.js"></script>
+</body>
+</html>
