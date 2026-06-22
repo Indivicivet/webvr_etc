@@ -42,3 +42,10 @@ to block the lasers and reflect them back to destroy the drones.
 5. Integrity: The player has 3 shield integrity units. Letting a laser pass or 
   blocking with the wrong color damages 1 unit.
 6. Game Over: Occurs when integrity reaches 0. Replay button is displayed.
+
+5. TENTATIVE FOLLOW-UP IDEAS (POST-PROTOTYPE)
+--------------------------------------------------------------------------------
+* [ ] Shield Crossing Mechanic: A green laser projectile that cannot be blocked by 
+  a single shield. The player must physically cross/overlap their red and blue shields 
+  together to form a temporary green shielding zone to block or deflect it. Review 
+  this mechanic after testing the initial prototype's speed and basic shield tracking.

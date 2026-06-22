@@ -38,3 +38,9 @@ The player draws the bowstring back and releases it to fire glowing energy arrow
 4. Scoring: Hitting closer to the bullseye rewards higher points (100 for outer ring, 
   500 for bullseye). Hitting distant moving targets triggers multiplier bonuses.
 5. Game Over: Occurs when arrows run out (start with 15 arrows). Replay button appears.
+
+5. TENTATIVE FOLLOW-UP IDEAS (POST-PROTOTYPE)
+--------------------------------------------------------------------------------
+* [ ] Arrow Economy & Targets: Add quick-moving bonus balloons or drone targets 
+  that reward +2 arrows or a temporary speed boost when hit. Review this after the 
+  initial prototype is tested to evaluate if it's needed to maintain a sense of urgency.

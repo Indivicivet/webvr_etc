@@ -42,3 +42,9 @@ sliding along the back wall, aiming for high scores before the timer runs out.
   multiplier. Special "Green Core" targets explode, clearing adjacent targets.
 5. Game Over: When the timer hits zero, the final score and high score are shown 
   with a "REPLAY" button.
+
+5. TENTATIVE FOLLOW-UP IDEAS (POST-PROTOTYPE)
+--------------------------------------------------------------------------------
+* [ ] Hazard/Bomb Panels: Red flashing target panels. Hitting them deducts 200 points 
+  or temporarily freezes the disc dispenser. Review this addition after the first 
+  playable prototype is verified to see if it is needed to prevent target spamming.

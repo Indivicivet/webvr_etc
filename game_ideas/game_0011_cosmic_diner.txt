@@ -25,6 +25,7 @@ and slide the drinks to the matching customer before they leave angry.
 * Dispenser Station: Three vertical tube taps containing Red, Green, and Blue neon liquids.
 * Customers: Floating alien entities positioned at three stools across the counter.
 * Order Bubbles: Holographic colored bubbles floating above customer heads.
+* Disposal Drain: A glowing circular grid/sink located on the counter.
 
 4. CORE GAMEPLAY LOOP
 --------------------------------------------------------------------------------
@@ -37,8 +38,10 @@ and slide the drinks to the matching customer before they leave angry.
      - Green + Blue = Cyan
      - Red + Green = Yellow
      - Red + Green + Blue = White
-4. Serving: Player clicks the completed cup, then clicks the customer who ordered it 
+4. Disposal: If the player makes a mixing mistake, they can click the active cup 
+  and click the Disposal Drain to discard the contents and start over.
+5. Serving: Player clicks the completed cup, then clicks the customer who ordered it 
   to slide it across the bar.
-5. Feedback: Serves reward cash (points) and add patience time. Wrong orders or 
+6. Feedback: Serves reward cash (points) and add patience time. Wrong orders or 
   excessive waits result in customer departure and a loss of life.
-6. Game Over: Occurs when 3 customers leave unsatisfied. Display cash earned.
+7. Game Over: Occurs when 3 customers leave unsatisfied. Display cash earned.
