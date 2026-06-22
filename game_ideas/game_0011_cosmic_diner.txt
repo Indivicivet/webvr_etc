@@ -1,0 +1,58 @@
+================================================================================
+GAME DESIGN SKETCH: COSMIC DINER (0011)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+A fast-paced diner arcade game. The player is a bartender in a space station bar. 
+Alien customers sit across the counter and order neon mixed drinks. The player must 
+grab ingredients (Red, Green, Blue taps), mix them to create the requested colors, 
+and slide the drinks to the matching customer before they leave angry.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: WebXR controller laser pointer (aim, click trigger to pick up cups, click 
+  taps to pour, click customers to serve). Desktop fallback uses standard mouse 
+  clicks. No pointer lock.
+* Field of View (FoV): The bar, ingredients, and customers are arranged in a 
+  80-degree field of view to keep everything within arm's reach and view.
+* Comfort: Stationary, standing behind the bar counter. The bar structure provides 
+  a strong local horizontal plane of reference.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Diner: Retro-futuristic diner with glowing chrome counters and a starry window.
+* Dispenser Station: Three vertical tube taps containing Red, Green, and Blue neon liquids.
+* Customers: Floating alien entities positioned at three stools across the counter.
+* Order Bubbles: Holographic colored bubbles floating above customer heads.
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Start: Player clicks a glowing "OPEN BAR" sign.
+2. Orders: Customers arrive and request a color (e.g., Purple, Cyan, Yellow, White).
+3. Mixing: 
+   - Player clicks a cup to spawn it on the mixing pad.
+   - Player clicks a color tap. Liquid fills the cup and changes its color state:
+     - Red + Blue = Purple
+     - Green + Blue = Cyan
+     - Red + Green = Yellow
+     - Red + Green + Blue = White
+4. Serving: Player clicks the completed cup, then clicks the customer who ordered it 
+  to slide it across the bar.
+5. Feedback: Serves reward cash (points) and add patience time. Wrong orders or 
+  excessive waits result in customer departure and a loss of life.
+6. Game Over: Occurs when 3 customers leave unsatisfied. Display cash earned.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Mixology State:
+  A simple array structure keeps track of the current ingredients inside the cup:
+  `let activeCup = { red: false, green: false, blue: false };`
+  On tap click:
+  `activeCup[tapColor] = true;`
+  `updateCupVisualColor(activeCup);`
+
+* Customer Patience Timer:
+  Each customer entity runs a linear countdown timer that shrinks their visual 
+  order bubble. If it hits zero:
+  `triggerCustomerLeave(customerEl);`

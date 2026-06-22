@@ -1,0 +1,59 @@
+================================================================================
+GAME DESIGN SKETCH: NEON PUNCH (0008)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+A rhythm-action arcade game where the player stands at the end of a glowing runway 
+and uses physical punching motions to shatter oncoming neon orbs. Orbs are color-coded 
+(pink/blue) and must be hit by the corresponding hand (left/right) in sync with the beat.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: WebXR controller position tracking (physical punch velocity/collision). 
+  Desktop fallback uses mouse movements to position gloves and clicks (left-click 
+  for left glove, right-click/space for right glove) or arrow keys to strike. No mouse lock.
+* Field of View (FoV): All orb tracks are situated within a 50-degree front cone, 
+  ensuring they are visible without neck strain.
+* Comfort: Stationary, standing or seated. The track runway provides a strong sense 
+  of depth and perspective, preventing visual disorientation.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Arena: A dark synthwave tunnel with neon grid lines running towards the player.
+* Gloves: Translucent glowing spheres attached to the player's hand positions 
+  (pink/magenta on the left, electric blue on the right).
+* Target Orbs: Glowing spheres carrying core particles, emerging from the far end (z = -15m).
+* Hit Zone: A neon white gate overlay at z = -1.2m where punches are evaluated.
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Start: Player clicks a large "LAUNCH BEATS" button. Upbeat synthesized music starts.
+2. Spawning: Orbs spawn at z = -15m on either the left or right runway lanes, 
+  timed to match the music track's beats.
+3. Punching: 
+   - VR: The player punches when the orb reaches the Hit Zone. The game registers 
+     a hit if the glove sphere intersects the orb.
+   - Desktop: Player moves the mouse to aim and clicks the mouse keys/presses 
+     keys to strike the corresponding lane at the right time.
+4. Feedback: Shattering an orb plays a snare/clap sound and a burst of matching 
+  colored sparks. Misses cause a dull synth thud and a shield gauge decrease.
+5. Game Over: Occurs when shields drain. Display total hits, accuracy, and a retry button.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Hand / Glove Setup:
+  `<a-entity id="left-hand" hand-controls="hand: left">`
+    `<a-sphere class="glove" radius="0.15" material="color: #ff007f; emissive: #ff007f; transparent: true; opacity: 0.7"></a-sphere>`
+  `</a-entity>`
+  `<a-entity id="right-hand" hand-controls="hand: right">`
+    `<a-sphere class="glove" radius="0.15" material="color: #00f0ff; emissive: #00f0ff; transparent: true; opacity: 0.7"></a-sphere>`
+  `</a-entity>`
+
+* Collision & Velocity Scripting:
+  Evaluate the distance between glove center and orb center in the tick loop.
+  If the distance is less than `glove_radius + orb_radius` at `z >= -1.4m`:
+  `const speed = controllerVelocity.length();`
+  `if (speed > punchThreshold) {`
+    `triggerHit(orb);`
+  `}`

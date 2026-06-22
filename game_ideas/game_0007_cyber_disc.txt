@@ -1,0 +1,64 @@
+================================================================================
+GAME DESIGN SKETCH: CYBER DISC (0007)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+An arcade disc-throwing game set in a neon sports grid. The player stands at one 
+end of a court and throws glowing cyber-discs to smash panels and moving targets 
+sliding along the back wall, aiming for high scores before the timer runs out.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: WebXR controller support (trigger/grip to grab a disc, swing arm and 
+  release trigger to throw). Desktop fallback uses click-and-drag or a power-bar 
+  mechanic (click to aim, hold to charge speed, release to throw). No mouse locking.
+* Field of View (FoV): Targets are clustered in a 40-degree cone directly in front 
+  of the player (distance 8-12m) to prevent extreme head turning.
+* Comfort: Stationary gameplay from a fixed thrower's platform. The flat court 
+  lines and side walls act as strong spatial anchors.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Arena: A futuristic racquetball court with dark metallic surfaces and neon orange 
+  and blue accent lines.
+* Target Wall: Located 10m away. Features static geometric blocks (worth 100 pts) 
+  and fast-moving drone targets (worth 300 pts).
+* Disc Dispenser: A pedestal right next to the player's dominant hand spawning 
+  limitless glowing cyan discs.
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Start Screen: Player points at a large holographic "START GAME" button and pulls 
+  the trigger (or clicks on desktop) to begin a 60-second round.
+2. Grabbing: The player points their controller at the dispenser, presses trigger/grip 
+  to attach a disc to their hand, or clicks it on desktop.
+3. Throwing: 
+   - VR: The player performs a throwing motion. The game tracks controller velocity 
+     upon trigger release to determine the disc's trajectory.
+   - Desktop: Click on the disc dispenser to load, then click on the target wall to 
+     fire with speed proportional to distance or click duration.
+4. Scoring & Combos: Smashing multiple targets in quick succession initiates a 
+  multiplier. Special "Green Core" targets explode, clearing adjacent targets.
+5. Game Over: When the timer hits zero, the final score and high score are shown 
+  with a "REPLAY" button.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Disc Physics & Movement:
+  Use a custom component to update disc position along its launch vector:
+  `tick: function (time, timeDelta) {`
+    `if (!this.data.thrown) return;`
+    `let pos = this.el.object3D.position;`
+    `pos.addScaledVector(this.data.velocity, timeDelta / 1000);`
+    `// Check for target collisions`
+    `this.checkCollisions();`
+  `}`
+
+* VR Laser/Aiming Hand setup:
+  `<a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .grabable, .menu-btn; far: 4"></a-entity>`
+  `<a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .grabable, .menu-btn; far: 4"></a-entity>`
+
+* Synth Audio Effects:
+  Play Web Audio synth frequency sweeps for disc releases (rising frequency sweep) 
+  and target explosions (noise buffer explosion sound).

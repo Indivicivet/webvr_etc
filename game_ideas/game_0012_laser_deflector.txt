@@ -1,0 +1,59 @@
+================================================================================
+GAME DESIGN SKETCH: LASER DEFLECTOR (0012)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+An action-packed defense game where the player holds a pair of energy shields. 
+Enemy drones fire colored laser spheres at the player, who must tilt their shields 
+to block the lasers and reflect them back to destroy the drones.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: WebXR controllers (shields track hand position and rotation). Desktop 
+  fallback uses the mouse to position the shield along a 2D plane and click to tilt 
+  its angle. No pointer lock.
+* Field of View (FoV): Drones spawn and fire within a 60-degree cone directly ahead 
+  of the player, making incoming lasers easy to spot.
+* Comfort: Stationary gameplay. The player stands behind a solid energy barricade, 
+  focusing entirely on incoming projectiles.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Arena: A neon digital grid arena resembling a high-tech colosseum.
+* Shields: Glowing polygonal planar shields attached to the player's hands. 
+  - Left Shield: Red glow.
+  - Right Shield: Blue glow.
+* Enemy Drones: Hovering metal spheres with glowing laser nozzles, spawning 8m away.
+* Lasers: Neon projectiles that travel in straight lines towards the player.
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Start: Player pulls the trigger on a "SHIELD ACTIVATE" button to start the drone wave.
+2. Attack: Drones fire red or blue laser spheres towards the player's position.
+3. Deflection:
+   - The player must block the red laser with the red shield, and the blue laser 
+     with the blue shield. Hitting the wrong shield triggers an explosion and damages 
+     integrity.
+   - The angle of the shield relative to the laser determines the deflection vector:
+     `R = I - 2 * (I . N) * N` (standard reflection physics).
+4. Counter-Attack: Deflecting a laser sphere directly into an enemy drone destroys 
+  the drone and grants points.
+5. Integrity: The player has 3 shield integrity units. Letting a laser pass or 
+  blocking with the wrong color damages 1 unit.
+6. Game Over: Occurs when integrity reaches 0. Replay button is displayed.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Reflection Vector Math:
+  Calculate the reflection direction when a laser intersects a shield:
+  `let laserVec = laserEntity.getAttribute('velocity-vector');`
+  `let shieldNormal = getShieldNormal(shieldEntity);`
+  `let dot = laserVec.dot(shieldNormal);`
+  `let reflectedVec = laserVec.clone().sub(shieldNormal.clone().multiplyScalar(2 * dot));`
+  `laserEntity.setAttribute('velocity-vector', reflectedVec);`
+
+* Shield Entities:
+  `<a-entity id="left-shield" class="shield target" hand-controls="hand: left">`
+    `<a-plane width="0.6" height="0.6" material="color: red; transparent: true; opacity: 0.6; side: double"></a-plane>`
+  `</a-entity>`

@@ -1,0 +1,59 @@
+================================================================================
+GAME DESIGN SKETCH: NEON ARCHER (0010)
+================================================================================
+
+1. HIGH CONCEPT
+--------------------------------------------------------------------------------
+A futuristic target archery game. The player holds a virtual compound bow made of 
+neon light. Floating targets, drones, and balloons drift through a cybernetic valley. 
+The player draws the bowstring back and releases it to fire glowing energy arrows.
+
+2. HARDWARE CONSTRAINTS & ACCESSIBILITY
+--------------------------------------------------------------------------------
+* Controls: Two WebXR controllers. One hand holds the bow anchor; the other hand 
+  points at the string, holds trigger/grip, pulls back, and releases to shoot. 
+  Desktop fallback uses mouse: click and drag back on the bow representation, then 
+  release to fire. No pointer lock required.
+* Field of View (FoV): All targets spawn within a 60-degree window in front of the 
+  player to minimize extreme head rotations.
+* Comfort: Seated or standing stationary archery range. The static bow frame in 
+  hand serves as an excellent local reference anchor.
+
+3. VISUAL LAYOUT
+--------------------------------------------------------------------------------
+* Valley: A wireframe landscape with glowing purple peaks under a starry night sky.
+* Bow: A sleek neon cyan crescent that pivots matching the player's holding hand.
+* String: A thin bright yellow laser line that bends backwards when drawn.
+* Targets: Concentric neon target rings floating at different distances (5m, 10m, 15m).
+
+4. CORE GAMEPLAY LOOP
+--------------------------------------------------------------------------------
+1. Start: Player shoots a large glowing "START TARGET" to begin the round.
+2. Aiming & Drawing: 
+   - VR: The player holds the bow hand steady, brings the drawing hand to the string, 
+     holds trigger, and pulls backwards. The draw distance determines arrow speed.
+   - Desktop: Click and drag back on the bow crosshair, aiming with the mouse.
+3. Firing: Releasing the trigger/click launches the arrow. The arrow travels along a 
+  gravity-influenced projectile curve.
+4. Scoring: Hitting closer to the bullseye rewards higher points (100 for outer ring, 
+  500 for bullseye). Hitting distant moving targets triggers multiplier bonuses.
+5. Game Over: Occurs when arrows run out (start with 15 arrows). Replay button appears.
+
+5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
+--------------------------------------------------------------------------------
+* Projectile Physics:
+  Use a simple update component that simulates gravity on active arrows:
+  `tick: function (time, timeDelta) {`
+    `if (!this.data.active) return;`
+    `let dt = timeDelta / 1000;`
+    `this.data.velocity.y -= 9.8 * dt; // Gravity`
+    `let pos = this.el.object3D.position;`
+    `pos.addScaledVector(this.data.velocity, dt);`
+    `// Rotate arrow to align with velocity vector`
+    `this.alignWithVelocity();`
+    `this.checkCollisions();`
+  `}`
+
+* Bow String Deformation:
+  Adjust the vertices or scaling of a simple line entity based on the distance 
+  between the bow entity and the drawing hand entity.
