@@ -538,7 +538,7 @@ class Particle {
 AFRAME.registerComponent('vr-movement-controls', {
     schema: {
         rig: {type: 'selector', default: '#rig'},
-        speed: {type: 'number', default: 2.0}
+        speed: {type: 'number', default: 1.5}
     },
     
     init: function () {
@@ -551,6 +551,13 @@ AFRAME.registerComponent('vr-movement-controls', {
         });
         this.el.addEventListener('gripup', () => {
             this.isMoving = false;
+        });
+        
+        // Clear inputs on disconnect to prevent runaway movement
+        this.el.addEventListener('controllerdisconnected', () => {
+            this.isMoving = false;
+            this.thumbstickX = 0;
+            this.thumbstickY = 0;
         });
         
         // Listen to thumbstick/trackpad axis changes
@@ -589,18 +596,24 @@ AFRAME.registerComponent('vr-movement-controls', {
             dz += this.moveDirection.z * this.data.speed * deltaSeconds;
         }
         
-        // 2. Thumbstick-based movement (camera relative)
-        if (Math.abs(this.thumbstickX) > 0.05 || Math.abs(this.thumbstickY) > 0.05) {
+        // 2. Thumbstick-based movement (camera relative) with deadzone to prevent drift
+        const DEADZONE = 0.20;
+        let stickX = 0;
+        let stickY = 0;
+        if (Math.abs(this.thumbstickX) > DEADZONE) stickX = this.thumbstickX;
+        if (Math.abs(this.thumbstickY) > DEADZONE) stickY = this.thumbstickY;
+        
+        if (stickX !== 0 || stickY !== 0) {
             const camera = document.getElementById('camera');
             if (camera) {
                 const rotation = camera.getAttribute('rotation');
                 const angle = (rotation.y * Math.PI) / 180;
                 
-                const forwardX = -Math.sin(angle) * -this.thumbstickY;
-                const forwardZ = -Math.cos(angle) * -this.thumbstickY;
+                const forwardX = -Math.sin(angle) * -stickY;
+                const forwardZ = -Math.cos(angle) * -stickY;
                 
-                const rightX = Math.cos(angle) * this.thumbstickX;
-                const rightZ = -Math.sin(angle) * this.thumbstickX;
+                const rightX = Math.cos(angle) * stickX;
+                const rightZ = -Math.sin(angle) * stickX;
                 
                 dx += (forwardX + rightX) * this.data.speed * deltaSeconds;
                 dz += (forwardZ + rightZ) * this.data.speed * deltaSeconds;
@@ -608,11 +621,26 @@ AFRAME.registerComponent('vr-movement-controls', {
         }
         
         if (dx !== 0 || dz !== 0) {
-            rig.setAttribute('position', {
-                x: position.x + dx,
-                y: position.y,
-                z: position.z + dz
-            });
+            const newX = position.x + dx;
+            const newZ = position.z + dz;
+            
+            // Keep the player within the garden meadow boundary (8-meter radius around starting area)
+            const dist = Math.sqrt(newX * newX + newZ * newZ);
+            if (dist <= 8.0) {
+                rig.setAttribute('position', {
+                    x: newX,
+                    y: position.y,
+                    z: newZ
+                });
+            } else {
+                // Slide along the boundary
+                const angle = Math.atan2(newZ, newX);
+                rig.setAttribute('position', {
+                    x: Math.cos(angle) * 8.0,
+                    y: position.y,
+                    z: Math.sin(angle) * 8.0
+                });
+            }
         }
     }
 });
@@ -685,6 +713,12 @@ function enterGarden() {
 
 function startGame() {
     audio.resume();
+    
+    // Reset camera rig position to origin so the player starts in front of the pond
+    const rig = document.getElementById('rig');
+    if (rig) {
+        rig.setAttribute('position', '0 0 0');
+    }
     
     // Reset Game State
     game.score = 0;
