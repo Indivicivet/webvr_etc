@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Laser Deflector VR - Shield Defense Game</title>
+    <meta name="description" content="Hold energy shields in WebVR to block and reflect incoming laser spheres back to destroy enemy drones.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+
+    <!-- A-Frame Library (Version 1.6.0) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+</head>
+<body>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer" class="ui-layer">
+        
+        <!-- Start Screen -->
+        <div id="panel-start" class="overlay-panel">
+            <div class="logo-badge">SYSTEM SECURE</div>
+            <h1>Laser Deflector</h1>
+            <p class="subtitle">Enemy drones are attacking! Hold your energy shields to block colored laser spheres, and tilt them to reflect lasers directly back to destroy the drones.</p>
+            
+            <div class="guide-container">
+                <div class="guide-item">
+                    <div class="color-swatch swatch-magenta"></div>
+                    <div class="guide-text">
+                        <h4>Magenta Energy</h4>
+                        <p>Block with the Magenta Shield (Left controller / Red state)</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-cyan"></div>
+                    <div class="guide-text">
+                        <h4>Cyan Energy</h4>
+                        <p>Block with the Cyan Shield (Right controller / Blue state)</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="color-swatch swatch-green"></div>
+                    <div class="guide-text">
+                        <h4>Green Energy (Advanced)</h4>
+                        <p>Overlap shields together or use Space on desktop to merge</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn btn-primary">Shield Activate</button>
+            <div class="status-msg">Click button or press trigger in VR to begin</div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="panel-gameover" class="overlay-panel hidden">
+            <div class="logo-badge" style="background: linear-gradient(135deg, var(--neon-magenta), var(--neon-purple)); box-shadow: 0 0 15px var(--neon-magenta-glow);">Shield Depleted</div>
+            <h1>Deflection Failure</h1>
+            <p class="subtitle">The energy core has been breached.</p>
+            
+            <div class="stats-list">
+                <div class="stats-row">
+                    <span class="stats-label">Final Score:</span>
+                    <span id="stat-final-score" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Highest Wave:</span>
+                    <span id="stat-final-wave" class="stats-value">1</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Drones Destroyed:</span>
+                    <span id="stat-drones-killed" class="stats-value">0</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Personal Best:</span>
+                    <span id="stat-high-score" class="stats-value">0</span>
+                </div>
+                <div id="new-record-indicator" class="stats-row hidden">
+                    <span class="stats-new-record" style="width: 100%; text-align: center;">🎉 NEW HIGH SCORE! 🎉</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="btn btn-primary">Reboot System</button>
+        </div>
+    </div>
+
+    <!-- HUD Overlay for Screen -->
+    <div id="hud" class="hud-container hidden">
+        <div class="hud-group">
+            <div class="hud-panel">
+                <span class="hud-label">Integrity</span>
+                <div id="hud-integrity" class="integrity-container">
+                    <div class="integrity-dot"></div>
+                    <div class="integrity-dot"></div>
+                    <div class="integrity-dot"></div>
+                </div>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-label">Score</span>
+                <span id="hud-score-val" class="hud-value">0</span>
+            </div>
+        </div>
+        <div class="hud-group">
+            <div class="hud-panel">
+                <span class="hud-label">Wave</span>
+                <span id="hud-wave-val" class="hud-value">1</span>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-label">Multiplier</span>
+                <span id="hud-multiplier-val" class="hud-value">x1</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop Tooltip -->
+    <div id="desktop-tip" class="desktop-tip hidden">
+        Move mouse to position shield. Left-Click: Magenta | Right-Click: Cyan | Space: Green
+    </div>
+
+    <!-- 3D Scene Viewport -->
+    <div id="scene-container">
+        <a-scene embedded="false" vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true;">
+            
+            <a-assets>
+                <!-- Drones and sounds generated dynamically, but asset containers defined for safety -->
+            </a-assets>
+
+            <!-- Lighting -->
+            <a-entity light="type: ambient; color: #15112a; intensity: 0.7"></a-entity>
+            <a-entity light="type: directional; color: #a589ff; intensity: 1.0; castShadow: false" position="1 4 2"></a-entity>
+            <!-- Dynamic light for shield flashes and laser impacts -->
+            <a-entity id="impact-light" light="type: point; color: #ff007f; intensity: 0; distance: 5" position="0 1.6 -1.2"></a-entity>
+
+            <!-- Neon Digital Arena Visuals -->
+            <a-sky color="#05030a"></a-sky>
+            
+            <!-- Hexagonal/circular colosseum wiregrid -->
+            <a-plane position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#9d00ff" wireframe="true" material="shader: flat; opacity: 0.05"></a-plane>
+            <a-plane position="0 6 0" rotation="90 0 0" width="100" height="100" color="#00f3ff" wireframe="true" material="shader: flat; opacity: 0.03"></a-plane>
+            
+            <!-- Neon pillars surrounding the arena in a circle (radius 15m) -->
+            <a-entity id="arena-pillars">
+                <!-- Spawning 12 pillars in circular pattern -->
+                <a-cylinder position="0 5 -15" radius="0.15" height="10" color="#ff007f" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="7.5 5 -13" radius="0.15" height="10" color="#00f3ff" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="13 5 -7.5" radius="0.15" height="10" color="#ff007f" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="15 5 0" radius="0.15" height="10" color="#00f3ff" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="13 5 7.5" radius="0.15" height="10" color="#ff007f" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="7.5 5 13" radius="0.15" height="10" color="#00f3ff" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="0 5 15" radius="0.15" height="10" color="#ff007f" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="-7.5 5 13" radius="0.15" height="10" color="#00f3ff" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="-13 5 7.5" radius="0.15" height="10" color="#ff007f" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="-15 5 0" radius="0.15" height="10" color="#00f3ff" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="-13 5 -7.5" radius="0.15" height="10" color="#ff007f" material="shader: flat; opacity: 0.15"></a-cylinder>
+                <a-cylinder position="-7.5 5 -13" radius="0.15" height="10" color="#00f3ff" material="shader: flat; opacity: 0.15"></a-cylinder>
+            </a-entity>
+
+            <!-- Player energy barricade (comfort boundary) -->
+            <a-entity id="player-barricade" position="0 0 -0.8">
+                <!-- Glowing curved digital rail or curved mesh -->
+                <a-cylinder position="0 0.4 0" radius="1.2" height="0.8" open-ended="true" theta-length="120" theta-start="120" color="#9d00ff" material="wireframe: true; opacity: 0.15; side: double"></a-cylinder>
+                <a-cylinder position="0 0.8 0" radius="1.2" height="0.05" open-ended="true" theta-length="120" theta-start="120" color="#ff007f" material="shader: flat; opacity: 0.4; side: double"></a-cylinder>
+            </a-entity>
+
+            <!-- Interactive Containers -->
+            <a-entity id="drone-container"></a-entity>
+            <a-entity id="laser-container"></a-entity>
+            <a-entity id="particle-container"></a-entity>
+
+            <!-- Camera & Controller Rig -->
+            <a-entity id="rig" position="0 0 0">
+                <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
+                    <!-- Standard cursor for UI clicking in VR start screens if laser controller not active -->
+                    <a-cursor id="gaze-cursor" 
+                              fuse="true" 
+                              fuse-timeout="1200" 
+                              geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.022" 
+                              material="color: #00f3ff; shader: flat; opacity: 0.5" 
+                              raycaster="objects: #btn-start, #btn-restart, .vr-ui-btn"
+                              position="0 0 -1"
+                              visible="false">
+                    </a-cursor>
+                </a-camera>
+
+                <!-- VR Left Controller (Magenta/Red Shield) -->
+                <a-entity id="left-controller" 
+                          laser-controls="hand: left" 
+                          raycaster="objects: #btn-start, #btn-restart, .vr-ui-btn; far: 10" 
+                          line="color: #ff007f; opacity: 0.3">
+                    
+                    <!-- Left energy shield -->
+                    <a-entity id="vr-left-shield" class="vr-shield" position="0 0 -0.1" rotation="0 0 0">
+                        <!-- Shield Core -->
+                        <a-box width="0.4" height="0.4" depth="0.02" 
+                               color="#ff007f" 
+                               material="roughness: 0.1; metalness: 0.9; transparent: true; opacity: 0.55; emissive: #ff007f; emissiveIntensity: 1">
+                        </a-box>
+                        <!-- Glow outline -->
+                        <a-box width="0.42" height="0.42" depth="0.03" 
+                               color="#ff007f" 
+                               material="wireframe: true; opacity: 0.8; shader: flat">
+                        </a-box>
+                    </a-entity>
+                </a-entity>
+
+                <!-- VR Right Controller (Cyan/Blue Shield) -->
+                <a-entity id="right-controller" 
+                          laser-controls="hand: right" 
+                          raycaster="objects: #btn-start, #btn-restart, .vr-ui-btn; far: 10" 
+                          line="color: #00f3ff; opacity: 0.3">
+                    
+                    <!-- Right energy shield -->
+                    <a-entity id="vr-right-shield" class="vr-shield" position="0 0 -0.1" rotation="0 0 0">
+                        <!-- Shield Core -->
+                        <a-box width="0.4" height="0.4" depth="0.02" 
+                               color="#00f3ff" 
+                               material="roughness: 0.1; metalness: 0.9; transparent: true; opacity: 0.55; emissive: #00f3ff; emissiveIntensity: 1">
+                        </a-box>
+                        <!-- Glow outline -->
+                        <a-box width="0.42" height="0.42" depth="0.03" 
+                               color="#00f3ff" 
+                               material="wireframe: true; opacity: 0.8; shader: flat">
+                        </a-box>
+                    </a-entity>
+                </a-entity>
+            </a-entity>
+
+            <!-- Desktop Fallback Shield: Follows Mouse/Keys, starts positioned in center -->
+            <a-entity id="desktop-shield-rig" position="0 1.6 -1.2">
+                <a-entity id="desktop-shield">
+                    <!-- Core Shield Mesh (Can change color between Magenta, Cyan, and Green) -->
+                    <a-box id="desktop-shield-mesh" width="0.5" height="0.5" depth="0.02" 
+                           color="#ff007f" 
+                           material="roughness: 0.1; metalness: 0.9; transparent: true; opacity: 0.6; emissive: #ff007f; emissiveIntensity: 1.2">
+                    </a-box>
+                    <!-- Outer Glowing Grid wireframe -->
+                    <a-box id="desktop-shield-wire" width="0.52" height="0.52" depth="0.03" 
+                           color="#ff007f" 
+                           material="wireframe: true; opacity: 0.85; shader: flat">
+                    </a-box>
+                    <!-- Shield status tag -->
+                    <a-text id="desktop-shield-text" value="MAGENTA" align="center" color="#ffffff" width="1.5" position="0 0 0.025" material="shader: flat;"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <!-- Screen click/mouse interaction fallback cursor -->
+            <a-entity id="mouse-cursor" cursor="rayOrigin: mouse" raycaster="objects: #btn-start, #btn-restart, .vr-ui-btn"></a-entity>
+
+        </a-scene>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
