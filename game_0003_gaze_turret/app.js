@@ -519,6 +519,69 @@ AFRAME.registerComponent('explosion-particle', {
     }
 });
 
+AFRAME.registerComponent('impact-spark', {
+    schema: {
+        vx: { type: 'number' },
+        vy: { type: 'number' },
+        vz: { type: 'number' }
+    },
+    init: function() {
+        this.opacity = 1.0;
+        this.life = 0.15 + Math.random() * 0.2;
+        this.maxLife = this.life;
+    },
+    tick: function(time, timeDelta) {
+        const dt = timeDelta / 1000;
+        this.life -= dt;
+        
+        if (this.life <= 0) {
+            this.el.parentNode.removeChild(this.el);
+            return;
+        }
+        
+        const pos = this.el.object3D.position;
+        pos.x += this.data.vx * dt;
+        pos.y += this.data.vy * dt;
+        pos.z += this.data.vz * dt;
+        
+        // Slight gravity drift downwards
+        this.data.vy -= 1.2 * dt;
+        
+        this.opacity = Math.max(0, this.life / this.maxLife);
+        this.el.setAttribute('material', 'opacity', this.opacity);
+        this.el.object3D.scale.set(this.opacity, this.opacity, this.opacity);
+    }
+});
+
+function spawnImpactSparks(position, type) {
+    const sceneEl = document.querySelector('a-scene');
+    if (!sceneEl) return;
+    
+    const sparkCount = 2;
+    const colors = type === 'satellite' ? ['#00f3ff', '#ffffff'] : ['#ff5e00', '#ffe600'];
+    
+    for (let i = 0; i < sparkCount; i++) {
+        const spark = document.createElement('a-sphere');
+        spark.setAttribute('radius', 0.02 + Math.random() * 0.03);
+        spark.setAttribute('color', colors[Math.floor(Math.random() * colors.length)]);
+        spark.setAttribute('material', 'shader: flat; opacity: 1; transparent: true');
+        spark.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+        
+        // Drift spray back towards cockpit/sides
+        const speed = 2.0 + Math.random() * 3.5;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI * 0.35; // spray cone
+        
+        spark.setAttribute('impact-spark', {
+            vx: speed * Math.sin(phi) * Math.cos(theta),
+            vy: speed * Math.sin(phi) * Math.sin(theta) + 0.5,
+            vz: speed * Math.cos(phi) // spray towards +Z (players direction)
+        });
+        
+        sceneEl.appendChild(spark);
+    }
+}
+
 
 // ==========================================
 // 5. GAME MANAGER & MAIN ORCHESTRATION
@@ -559,8 +622,8 @@ AFRAME.registerComponent('gaze-turret', {
         this.vrTextScore = document.getElementById('vr-text-score');
         this.vrTextShield = document.getElementById('vr-text-shield');
         
-        this.laserLeft = document.getElementById('laser-left');
-        this.laserRight = document.getElementById('laser-right');
+        this.laserLeftContainer = document.getElementById('laser-left-container');
+        this.laserRightContainer = document.getElementById('laser-right-container');
         
         // Bind VR Controllers
         this.leftHand = document.getElementById('left-hand');
@@ -611,9 +674,9 @@ AFRAME.registerComponent('gaze-turret', {
         // Add starfield
         sceneEl.setAttribute('starfield', '');
         
-        // Initial setup for laser start tips
-        this.laserLeftStart = '-0.7 1.3 -1.5';
-        this.laserRightStart = '0.7 1.3 -1.5';
+        // Initial setup for laser start tips (vector objects for 3D positioning)
+        this.laserLeftStartVec = new THREE.Vector3(-0.7, 1.3, -1.5);
+        this.laserRightStartVec = new THREE.Vector3(0.7, 1.3, -1.5);
         
         // Check WebXR headset connection message
         this.checkVRHeadset();
@@ -677,21 +740,13 @@ AFRAME.registerComponent('gaze-turret', {
                 // Zap target
                 activeTarget.components['debris-item'].isBeingHit = true;
                 
-                // Draw neon lasers
+                // Draw neon 3D volumetric lasers
                 const pt = intersectPoint;
-                const endStr = `${pt.x} ${pt.y} ${pt.z}`;
+                this.updateLaserBeam(this.laserLeftContainer, this.laserLeftStartVec, pt);
+                this.updateLaserBeam(this.laserRightContainer, this.laserRightStartVec, pt);
                 
-                this.laserLeft.setAttribute('line', {
-                    start: this.laserLeftStart,
-                    end: endStr
-                });
-                this.laserLeft.setAttribute('visible', true);
-
-                this.laserRight.setAttribute('line', {
-                    start: this.laserRightStart,
-                    end: endStr
-                });
-                this.laserRight.setAttribute('visible', true);
+                // Spawn impact sparks
+                spawnImpactSparks(pt, activeTarget.components['debris-item'].data.type);
                 
                 // Play energy hum loop
                 window.soundEngine.startLaserLoop();
@@ -733,8 +788,8 @@ AFRAME.registerComponent('gaze-turret', {
     },
 
     hideLasers: function() {
-        this.laserLeft.setAttribute('visible', false);
-        this.laserRight.setAttribute('visible', false);
+        if (this.laserLeftContainer) this.laserLeftContainer.setAttribute('visible', false);
+        if (this.laserRightContainer) this.laserRightContainer.setAttribute('visible', false);
         window.soundEngine.stopLaserLoop();
     },
 
@@ -955,9 +1010,9 @@ AFRAME.registerComponent('gaze-turret', {
         
         debrisEl.classList.add('debris');
         
-        // Spawn inside comfortable 80-degree front field of view cone at Z = -35
+        // Spawn inside comfortable front field of view cone at Z = -35 (constrained vertically to [0.8, 2.6])
         const x = (Math.random() - 0.5) * 11.5;
-        const y = 0.6 + Math.random() * 3.3; // centers around players eyes
+        const y = 0.8 + Math.random() * 1.8; // centers around player's eye level (1.6)
         const z = -35;
         
         debrisEl.setAttribute('position', `${x} ${y} ${z}`);
@@ -973,6 +1028,26 @@ AFRAME.registerComponent('gaze-turret', {
         });
         
         container.appendChild(debrisEl);
+    },
+
+    updateLaserBeam: function(containerEl, startVec, endVec) {
+        if (!containerEl) return;
+        const distance = startVec.distanceTo(endVec);
+        
+        // Midpoint
+        const midpoint = new THREE.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5);
+        containerEl.object3D.position.copy(midpoint);
+        
+        // Scale height (Y axis for cylinder)
+        containerEl.object3D.scale.set(1, distance, 1);
+        
+        // Orient cylinder to point from start to end
+        const direction = new THREE.Vector3().subVectors(endVec, startVec).normalize();
+        const alignAxis = new THREE.Vector3(0, 1, 0); // default cylinder axis
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(alignAxis, direction);
+        containerEl.object3D.quaternion.copy(quaternion);
+        
+        containerEl.setAttribute('visible', true);
     },
 
     clearAllDebris: function() {
