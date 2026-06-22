@@ -42,19 +42,3 @@ correctly colored disposal chute.
    - Correct Chute: Play cash register chime, add points.
    - Incorrect Chute: Play electric shock fail sound, deduct time/health.
 6. Game Over: Occurs when a 90-second shift timer expires. Display total sorted mass.
-
-5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
---------------------------------------------------------------------------------
-* Grapple/Lerp Component:
-  When an object is captured, its update tick moves it towards the controller position:
-  `tick: function (time, timeDelta) {`
-    `if (!this.data.isCaptured) return;`
-    `let targetPos = controllerEl.object3D.position;`
-    `this.el.object3D.position.lerp(targetPos, 0.1); // Smooth drag`
-  `}`
-
-* Throw Physics:
-  Maintain a simple rolling window of the last 3 position offsets of the controller 
-  to calculate velocity when released:
-  `let velocity = (currentPos - previousPos) / timeDelta;`
-  `object.setAttribute('velocity-vector', velocity);`

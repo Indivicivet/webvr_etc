@@ -38,22 +38,3 @@ The player draws the bowstring back and releases it to fire glowing energy arrow
 4. Scoring: Hitting closer to the bullseye rewards higher points (100 for outer ring, 
   500 for bullseye). Hitting distant moving targets triggers multiplier bonuses.
 5. Game Over: Occurs when arrows run out (start with 15 arrows). Replay button appears.
-
-5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
---------------------------------------------------------------------------------
-* Projectile Physics:
-  Use a simple update component that simulates gravity on active arrows:
-  `tick: function (time, timeDelta) {`
-    `if (!this.data.active) return;`
-    `let dt = timeDelta / 1000;`
-    `this.data.velocity.y -= 9.8 * dt; // Gravity`
-    `let pos = this.el.object3D.position;`
-    `pos.addScaledVector(this.data.velocity, dt);`
-    `// Rotate arrow to align with velocity vector`
-    `this.alignWithVelocity();`
-    `this.checkCollisions();`
-  `}`
-
-* Bow String Deformation:
-  Adjust the vertices or scaling of a simple line entity based on the distance 
-  between the bow entity and the drawing hand entity.

@@ -42,17 +42,3 @@ and slide the drinks to the matching customer before they leave angry.
 5. Feedback: Serves reward cash (points) and add patience time. Wrong orders or 
   excessive waits result in customer departure and a loss of life.
 6. Game Over: Occurs when 3 customers leave unsatisfied. Display cash earned.
-
-5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
---------------------------------------------------------------------------------
-* Mixology State:
-  A simple array structure keeps track of the current ingredients inside the cup:
-  `let activeCup = { red: false, green: false, blue: false };`
-  On tap click:
-  `activeCup[tapColor] = true;`
-  `updateCupVisualColor(activeCup);`
-
-* Customer Patience Timer:
-  Each customer entity runs a linear countdown timer that shrinks their visual 
-  order bubble. If it hits zero:
-  `triggerCustomerLeave(customerEl);`

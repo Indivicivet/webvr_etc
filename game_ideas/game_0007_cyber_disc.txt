@@ -42,23 +42,3 @@ sliding along the back wall, aiming for high scores before the timer runs out.
   multiplier. Special "Green Core" targets explode, clearing adjacent targets.
 5. Game Over: When the timer hits zero, the final score and high score are shown 
   with a "REPLAY" button.
-
-5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
---------------------------------------------------------------------------------
-* Disc Physics & Movement:
-  Use a custom component to update disc position along its launch vector:
-  `tick: function (time, timeDelta) {`
-    `if (!this.data.thrown) return;`
-    `let pos = this.el.object3D.position;`
-    `pos.addScaledVector(this.data.velocity, timeDelta / 1000);`
-    `// Check for target collisions`
-    `this.checkCollisions();`
-  `}`
-
-* VR Laser/Aiming Hand setup:
-  `<a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .grabable, .menu-btn; far: 4"></a-entity>`
-  `<a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .grabable, .menu-btn; far: 4"></a-entity>`
-
-* Synth Audio Effects:
-  Play Web Audio synth frequency sweeps for disc releases (rising frequency sweep) 
-  and target explosions (noise buffer explosion sound).

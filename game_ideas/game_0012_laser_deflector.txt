@@ -42,18 +42,3 @@ to block the lasers and reflect them back to destroy the drones.
 5. Integrity: The player has 3 shield integrity units. Letting a laser pass or 
   blocking with the wrong color damages 1 unit.
 6. Game Over: Occurs when integrity reaches 0. Replay button is displayed.
-
-5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
---------------------------------------------------------------------------------
-* Reflection Vector Math:
-  Calculate the reflection direction when a laser intersects a shield:
-  `let laserVec = laserEntity.getAttribute('velocity-vector');`
-  `let shieldNormal = getShieldNormal(shieldEntity);`
-  `let dot = laserVec.dot(shieldNormal);`
-  `let reflectedVec = laserVec.clone().sub(shieldNormal.clone().multiplyScalar(2 * dot));`
-  `laserEntity.setAttribute('velocity-vector', reflectedVec);`
-
-* Shield Entities:
-  `<a-entity id="left-shield" class="shield target" hand-controls="hand: left">`
-    `<a-plane width="0.6" height="0.6" material="color: red; transparent: true; opacity: 0.6; side: double"></a-plane>`
-  `</a-entity>`

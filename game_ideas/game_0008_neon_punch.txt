@@ -39,21 +39,3 @@ and uses physical punching motions to shatter oncoming neon orbs. Orbs are color
 4. Feedback: Shattering an orb plays a snare/clap sound and a burst of matching 
   colored sparks. Misses cause a dull synth thud and a shield gauge decrease.
 5. Game Over: Occurs when shields drain. Display total hits, accuracy, and a retry button.
-
-5. IMPLEMENTATION SPECIFICATIONS (A-FRAME)
---------------------------------------------------------------------------------
-* Hand / Glove Setup:
-  `<a-entity id="left-hand" hand-controls="hand: left">`
-    `<a-sphere class="glove" radius="0.15" material="color: #ff007f; emissive: #ff007f; transparent: true; opacity: 0.7"></a-sphere>`
-  `</a-entity>`
-  `<a-entity id="right-hand" hand-controls="hand: right">`
-    `<a-sphere class="glove" radius="0.15" material="color: #00f0ff; emissive: #00f0ff; transparent: true; opacity: 0.7"></a-sphere>`
-  `</a-entity>`
-
-* Collision & Velocity Scripting:
-  Evaluate the distance between glove center and orb center in the tick loop.
-  If the distance is less than `glove_radius + orb_radius` at `z >= -1.4m`:
-  `const speed = controllerVelocity.length();`
-  `if (speed > punchThreshold) {`
-    `triggerHit(orb);`
-  `}`
