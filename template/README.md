@@ -1,12 +1,12 @@
 # WebXR VR Template
 
-A premium, zero-build, and minimal VR (WebXR) boilerplate built with **A-Frame** and **Vanilla CSS**. It works out of the box and is ready to be hosted on **GitHub Pages**.
+A zero-build and minimal VR (WebXR) boilerplate built with **A-Frame** and **Vanilla CSS**. It works out of the box and is ready to be hosted on **GitHub Pages**.
 
 ## Folder Structure
 ```text
 template/
 ├── index.html   # HTML layout, A-Frame scene, and camera rig
-├── style.css    # Premium glassmorphic start screen styles
+├── style.css    # Glassmorphic start screen styles
 └── app.js       # Audio synthesis and click interaction logic
 ```
 
