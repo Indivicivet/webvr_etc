@@ -23,6 +23,29 @@ class SoundEngine {
         }
     }
 
+    playLaserShoot() {
+        this.resume();
+        if (!this.ctx) return;
+        
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const duration = 0.08;
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, t);
+        osc.frequency.exponentialRampToValueAtTime(300, t + duration);
+        
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.start(t);
+        osc.stop(t + duration + 0.01);
+    }
+
     playZap(isPower = false) {
         this.resume();
         if (!this.ctx) return;
@@ -31,22 +54,38 @@ class SoundEngine {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
-        osc.type = isPower ? 'sine' : 'triangle';
-        const startFreq = isPower ? 500 : 350;
-        const endFreq = isPower ? 1500 : 900;
-        const duration = isPower ? 0.22 : 0.15;
+        osc.type = 'sine';
+        const startFreq = isPower ? 600 : 440;
+        const endFreq = isPower ? 1800 : 1200;
+        const duration = isPower ? 0.25 : 0.18;
         
         osc.frequency.setValueAtTime(startFreq, t);
         osc.frequency.exponentialRampToValueAtTime(endFreq, t + duration);
         
-        gain.gain.setValueAtTime(isPower ? 0.25 : 0.2, t);
+        // Secondary harmonic chime oscillator for rich arcade hit feel
+        const chime = this.ctx.createOscillator();
+        const chimeGain = this.ctx.createGain();
+        chime.type = 'triangle';
+        chime.frequency.setValueAtTime(startFreq * 1.5, t);
+        chime.frequency.exponentialRampToValueAtTime(endFreq * 1.5, t + duration);
+        
+        gain.gain.setValueAtTime(isPower ? 0.25 : 0.18, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
         
+        chimeGain.gain.setValueAtTime(isPower ? 0.12 : 0.08, t);
+        chimeGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+        
         osc.connect(gain);
+        chime.connect(chimeGain);
+        
         gain.connect(this.ctx.destination);
+        chimeGain.connect(this.ctx.destination);
         
         osc.start(t);
+        chime.start(t);
+        
         osc.stop(t + duration + 0.01);
+        chime.stop(t + duration + 0.01);
     }
 
     playBuzz() {
@@ -57,15 +96,17 @@ class SoundEngine {
         const osc1 = this.ctx.createOscillator();
         const osc2 = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        const duration = 0.4;
+        const duration = 0.45;
         
         osc1.type = 'sawtooth';
-        osc1.frequency.setValueAtTime(98, t); // G2-ish low hum
+        osc1.frequency.setValueAtTime(110, t);
+        osc1.frequency.linearRampToValueAtTime(55, t + duration);
         
         osc2.type = 'square';
-        osc2.frequency.setValueAtTime(102, t); // detuned low beat
+        osc2.frequency.setValueAtTime(113, t);
+        osc2.frequency.linearRampToValueAtTime(58, t + duration);
         
-        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.setValueAtTime(0.2, t);
         gain.gain.linearRampToValueAtTime(0.001, t + duration);
         
         osc1.connect(gain);
@@ -78,6 +119,29 @@ class SoundEngine {
         osc2.stop(t + duration + 0.01);
     }
 
+    playMiss() {
+        this.resume();
+        if (!this.ctx) return;
+        
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const duration = 0.35;
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(280, t);
+        osc.frequency.linearRampToValueAtTime(80, t + duration);
+        
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.linearRampToValueAtTime(0.001, t + duration);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.start(t);
+        osc.stop(t + duration + 0.01);
+    }
+
     playTick(pitchPercent) {
         this.resume();
         if (!this.ctx) return;
@@ -88,7 +152,6 @@ class SoundEngine {
         const duration = 0.04;
         
         osc.type = 'sine';
-        // Base frequency 700Hz, scaling up to 1600Hz as duration depletes
         const freq = 700 + (pitchPercent * 900);
         osc.frequency.setValueAtTime(freq, t);
         
@@ -107,7 +170,6 @@ class SoundEngine {
         if (!this.ctx) return;
         
         const t = this.ctx.currentTime;
-        // Cyberpunk synth chords: C4, D#4, G4, C5
         const notes = [261.63, 311.13, 392.00, 523.25];
         
         notes.forEach((freq, index) => {
@@ -135,7 +197,6 @@ class SoundEngine {
         if (!this.ctx) return;
         
         const t = this.ctx.currentTime;
-        // Declining cyber minor chord: G#4, E4, C4, G#3
         const notes = [415.30, 329.63, 261.63, 207.65];
         
         notes.forEach((freq, index) => {
@@ -220,6 +281,11 @@ const UI = {
     vrHudLives: document.getElementById('vr-hud-lives'),
     consoleGlow: document.getElementById('console-glow'),
     
+    // 3D VR Side HUD Panels
+    sideHudScore: document.getElementById('side-hud-score'),
+    sideHudHighScore: document.getElementById('side-hud-highscore'),
+    sideHudLives: document.getElementById('side-hud-lives'),
+    
     // Gaze Cursor & VR Controllers
     gazeCursor: document.getElementById('gaze-cursor'),
     leftHand: document.getElementById('left-hand'),
@@ -285,10 +351,15 @@ function initGame() {
     // Initial Highscore sync
     UI.hudHighScore.innerText = formatNumber(game.highscore);
     
-    // Sound initialization on first user tap
-    document.body.addEventListener('pointerdown', () => audio.resume());
+    // Sound initialization & laser trigger on user tap/click
+    document.body.addEventListener('pointerdown', () => {
+        audio.resume();
+        if (game.active && !leftConnected && !rightConnected) {
+            audio.playLaserShoot();
+        }
+    });
 
-    // Listen for VR controller connection/disconnection
+    // Listen for VR controller connection/disconnection & trigger pulls
     if (UI.leftHand) {
         UI.leftHand.addEventListener('controllerconnected', () => {
             leftConnected = true;
@@ -297,6 +368,9 @@ function initGame() {
         UI.leftHand.addEventListener('controllerdisconnected', () => {
             leftConnected = false;
             updateGazeCursorState();
+        });
+        UI.leftHand.addEventListener('triggerdown', () => {
+            if (game.active) audio.playLaserShoot();
         });
     }
     if (UI.rightHand) {
@@ -307,6 +381,9 @@ function initGame() {
         UI.rightHand.addEventListener('controllerdisconnected', () => {
             rightConnected = false;
             updateGazeCursorState();
+        });
+        UI.rightHand.addEventListener('triggerdown', () => {
+            if (game.active) audio.playLaserShoot();
         });
     }
 }
@@ -436,6 +513,18 @@ function updateHUDVisuals() {
     
     UI.vrHudLives.setAttribute('value', `INTEGRITY: ${lifePipes}`);
     UI.vrHudLives.setAttribute('color', game.lives <= 1 ? '#ff5e00' : '#ff007f');
+
+    // Sync 3D Side HUD text fields (close to the board)
+    if (UI.sideHudScore) {
+        UI.sideHudScore.setAttribute('value', formattedScore);
+    }
+    if (UI.sideHudHighScore) {
+        UI.sideHudHighScore.setAttribute('value', formattedHighScore);
+    }
+    if (UI.sideHudLives) {
+        UI.sideHudLives.setAttribute('value', lifePipes);
+        UI.sideHudLives.setAttribute('color', game.lives <= 1 ? '#ff5e00' : '#ff007f');
+    }
 }
 
 // ==========================================
@@ -450,6 +539,25 @@ function onNodeZap(nodeIdx) {
 
     // Trigger immediate retraction
     node.state = 'retreating';
+
+    // Trigger whack ripple animation
+    if (node.element) {
+        const ripple = node.element.parentElement.querySelector('.ripple-ring');
+        if (ripple) {
+            let color = '#ff007f';
+            if (node.type === 'power') color = '#39ff14';
+            if (node.type === 'hazard') color = '#ff5e00';
+            
+            ripple.setAttribute('color', color);
+            ripple.setAttribute('material', `color: ${color}; shader: flat; opacity: 0.8;`);
+            ripple.setAttribute('scale', '1 1 1');
+            ripple.setAttribute('visible', 'true');
+            ripple.emit('whack');
+            setTimeout(() => {
+                ripple.setAttribute('visible', 'false');
+            }, 250);
+        }
+    }
 
     if (node.type === 'standard') {
         game.score += 1;
@@ -535,7 +643,23 @@ function update(time) {
                     // Standard & Power nodes cause damage if they retreat undetected
                     if (node.type !== 'hazard') {
                         game.lives -= 1;
-                        audio.playBuzz();
+                        audio.playMiss(); // Play distinct miss sound
+                        
+                        // Trigger miss visual ring on node
+                        if (node.element) {
+                            const missRing = node.element.parentElement.querySelector('.miss-ring');
+                            if (missRing) {
+                                missRing.setAttribute('scale', '1 1 1');
+                                missRing.setAttribute('material', 'color: #ff0000; shader: flat; opacity: 0.8;');
+                                missRing.setAttribute('visible', 'true');
+                                missRing.emit('miss');
+                                setTimeout(() => {
+                                    missRing.setAttribute('visible', 'false');
+                                }, 350);
+                            }
+                        }
+                        
+                        flashGlow('#ff0000'); // Flash console light red on miss
                         updateHUDVisuals();
                         
                         if (game.lives <= 0) {

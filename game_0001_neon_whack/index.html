@@ -33,21 +33,21 @@
                     <div class="guide-color-indicator guide-pink"></div>
                     <div class="guide-item-text">
                         <h3>Standard Core (Pink)</h3>
-                        <p>Deactivate for +1 Point. Spawns frequently.</p>
+                        <p>Deactivate for +1 Point. **Costs 1 Life if missed** (retreats undetected).</p>
                     </div>
                 </div>
                 <div class="guide-item">
                     <div class="guide-color-indicator guide-green"></div>
                     <div class="guide-item-text">
                         <h3>Power Core (Green)</h3>
-                        <p>Deactivate for +3 Points. Retreats very quickly.</p>
+                        <p>Deactivate for +3 Points. Retreats very quickly. **Costs 1 Life if missed**.</p>
                     </div>
                 </div>
                 <div class="guide-item">
                     <div class="guide-color-indicator guide-orange"></div>
                     <div class="guide-item-text">
                         <h3>Hazard Core (Orange)</h3>
-                        <p>DO NOT LOOK! Looking deducts 1 Life immediately.</p>
+                        <p>**AVOID!** Deactivating (triggering/gazing) deducts 1 Life. Let it retreat safely.</p>
                     </div>
                 </div>
             </div>
@@ -154,8 +154,8 @@
             </a-entity>
 
             <!-- The Core Console Board (3x3 grid panel) -->
-            <!-- Placed at y=1.35m, z=-2.4m, tilted 10 degrees back towards camera -->
-            <a-entity id="board" position="0 1.35 -2.4" rotation="-10 0 0">
+            <!-- Placed at y=1.35m, z=-2.8m, scaled to 0.85, tilted 10 degrees back towards camera to fit screen/FOV better -->
+            <a-entity id="board" position="0 1.35 -2.8" scale="0.85 0.85 0.85" rotation="-10 0 0">
                 <!-- Large Metallic Panel Base -->
                 <a-box position="0 0 -0.04" width="1.8" height="1.8" depth="0.08" color="#110d24" material="roughness: 0.6; metalness: 0.8"></a-box>
                 
@@ -165,12 +165,42 @@
                 <a-box position="0.9 0 0" width="0.02" height="1.84" depth="0.02" color="#ff007f" material="shader: flat; emissive: #ff007f; emissiveIntensity: 0.8"></a-box>
                 <a-box position="-0.9 0 0" width="0.02" height="1.84" depth="0.02" color="#ff007f" material="shader: flat; emissive: #ff007f; emissiveIntensity: 0.8"></a-box>
 
+                <!-- 3D Side HUD Left Panel (Score & Best) -->
+                <!-- x=-1.1 keeps it very close to the board's left border (at x=-0.9) to comfortably support FoV <= 90deg -->
+                <a-entity position="-1.1 0 0">
+                    <a-box width="0.32" height="0.8" depth="0.06" color="#110d24" material="roughness: 0.6; metalness: 0.8"></a-box>
+                    <a-box position="-0.16 0 0.01" width="0.01" height="0.82" depth="0.02" color="#00f3ff" material="shader: flat; emissive: #00f3ff; emissiveIntensity: 0.8"></a-box>
+                    <!-- Score Text -->
+                    <a-text value="SCORE" align="center" color="#a59fc4" width="1.5" font="kandoo" position="0 0.25 0.04" material="shader: flat;"></a-text>
+                    <a-text id="side-hud-score" value="000" align="center" color="#00f3ff" width="3.5" font="kandoo" position="0 0.1 0.04" material="shader: flat;"></a-text>
+                    
+                    <!-- Best Score Text -->
+                    <a-text value="BEST" align="center" color="#a59fc4" width="1.5" font="kandoo" position="0 -0.15 0.04" material="shader: flat;"></a-text>
+                    <a-text id="side-hud-highscore" value="000" align="center" color="#9d00ff" width="3.5" font="kandoo" position="0 -0.3 0.04" material="shader: flat;"></a-text>
+                </a-entity>
+
+                <!-- 3D Side HUD Right Panel (Integrity / Lives) -->
+                <!-- x=1.1 keeps it very close to the board's right border (at x=0.9) to comfortably support FoV <= 90deg -->
+                <a-entity position="1.1 0 0">
+                    <a-box width="0.32" height="0.8" depth="0.06" color="#110d24" material="roughness: 0.6; metalness: 0.8"></a-box>
+                    <a-box position="0.16 0 0.01" width="0.01" height="0.82" depth="0.02" color="#ff007f" material="shader: flat; emissive: #ff007f; emissiveIntensity: 0.8"></a-box>
+                    <!-- Lives Text -->
+                    <a-text value="INTEGRITY" align="center" color="#a59fc4" width="1.5" font="kandoo" position="0 0.2 0.04" material="shader: flat;"></a-text>
+                    <a-text id="side-hud-lives" value="III" align="center" color="#ff007f" width="3.8" font="kandoo" position="0 -0.05 0.04" material="shader: flat;"></a-text>
+                </a-entity>
+
                 <!-- Grid Node 0: Top-Left [x=-0.5, y=0.5] -->
                 <a-entity position="-0.5 0.5 0">
                     <a-ring color="#2d2254" radius-inner="0.16" radius-outer="0.19" position="0 0 0.01" material="roughness: 0.5; metalness: 0.7"></a-ring>
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="0" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 1: Top-Center [x=0, y=0.5] -->
@@ -179,6 +209,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="1" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 2: Top-Right [x=0.5, y=0.5] -->
@@ -187,6 +223,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="2" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 3: Middle-Left [x=-0.5, y=0] -->
@@ -195,6 +237,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="3" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 4: Middle-Center [x=0, y=0] -->
@@ -203,6 +251,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="4" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 5: Middle-Right [x=0.5, y=0] -->
@@ -211,6 +265,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="5" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 6: Bottom-Left [x=-0.5, y=-0.5] -->
@@ -219,6 +279,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="6" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 7: Bottom-Center [x=0, y=-0.5] -->
@@ -227,6 +293,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="7" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
 
                 <!-- Grid Node 8: Bottom-Right [x=0.5, y=-0.5] -->
@@ -235,6 +307,12 @@
                     <a-circle color="#07050f" radius="0.16" position="0 0 0.005" material="roughness: 1"></a-circle>
                     <a-cylinder class="target target-core" data-node="8" radius="0.15" height="0.3" position="0 0 -0.15" rotation="90 0 0" color="#ff007f"
                                 material="roughness: 0.3; metalness: 0.3; emissive: #ff007f; emissiveIntensity: 0.5"></a-cylinder>
+                    <a-ring class="ripple-ring" color="#ff007f" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 2.2 2.2 2.2; dur: 250; startEvents: whack"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 250; startEvents: whack"></a-ring>
+                    <a-ring class="miss-ring" color="#ff0000" radius-inner="0.15" radius-outer="0.17" position="0 0 0.02" visible="false" material="shader: flat; opacity: 0.8"
+                            animation__scale="property: scale; from: 1 1 1; to: 1.8 1.8 1.8; dur: 350; startEvents: miss"
+                            animation__fade="property: material.opacity; from: 0.8; to: 0; dur: 350; startEvents: miss"></a-ring>
                 </a-entity>
             </a-entity>
 
