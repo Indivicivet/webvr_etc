@@ -37,23 +37,17 @@ Built entirely with the **HTML5 Web Audio API**—no external audio assets requi
 - **Explosion sweep**: A descending triangle rumble for star bubble detonations.
 - **Zen Ambience**: A low C3/G3 pitch drone playing in the background with randomized soft wind chimes.
 
----
-
 ## 🕹️ Controls
 
 1. **VR Tracked Controllers (Recommended for VR)**:
    - **Aiming**: Point either controller at a bubble or 3D Start/Restart button (rendered as laser pointers).
    - **Popping / Interacting**: Pull the Trigger button on either controller.
-   - **Locomotion (Movement)**:
-     - **Grip-Steer**: Hold the Grip button on either controller and point it in the direction you want to walk.
-     - **Thumbstick/Trackpad**: Move the thumbstick/trackpad on either controller for standard smooth locomotion relative to the direction you are facing.
 2. **Gaze-Only (VR Headsets without Controllers)**:
    - Look around to center your camera reticle over bubbles or the 3D Start/Restart buttons.
    - Hovering over a bubble pops it immediately (instant 0ms fuse).
 3. **Desktop (Keyboard & Mouse)**:
    - Click and drag the mouse on the screen to look around.
    - Hover the center reticle over bubbles to pop them.
-   - Use **WASD** keys to move around the garden.
 4. **Mobile (Gaze/Tilt/Drag)**:
    - Drag your finger on the screen or look around (if gyro is enabled) to center your cursor over bubbles.
 

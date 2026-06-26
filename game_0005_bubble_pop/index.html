@@ -26,7 +26,7 @@
         <div id="panel-start" class="overlay-panel">
             <div class="logo-badge">Zen VR Garden</div>
             <h1>Zen Bubble Popper</h1>
-            <p class="subtitle">Relax and focus. Pop streams of translucent bubbles rising in the garden. Aim with camera gaze, or point with a VR controller and pull the trigger. Hold either controller's Grip button or use the thumbstick to walk around.</p>
+            <p class="subtitle">Relax and focus. Pop streams of translucent bubbles rising in the garden. Aim with camera gaze, or point with a VR controller and pull the trigger.</p>
             
             <div class="guide-container">
                 <div class="guide-item">
@@ -296,7 +296,7 @@
 
             <!-- Camera & Interaction Setup -->
             <a-entity id="rig" position="0 0 0">
-                <a-camera id="camera" position="0 1.6 0" look-controls="pointerLockEnabled: false">
+                <a-camera id="camera" position="0 1.6 0" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">
                     <!-- Instant raycast cursor, targets bubbles & VR buttons -->
                     <a-cursor id="cursor"
                               fuse="false"
@@ -308,9 +308,9 @@
                               animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 50; from: 1 1 1; to: 0.1 0.1 0.1">
                     </a-cursor>
                 </a-camera>
-                <!-- VR Controllers with Laser pointer for aiming and custom movement controls -->
-                <a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .bubble, .vr-btn; far: 50" vr-movement-controls></a-entity>
-                <a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .bubble, .vr-btn; far: 50" vr-movement-controls></a-entity>
+                <!-- VR Controllers with Laser pointer for aiming -->
+                <a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .bubble, .vr-btn; far: 50"></a-entity>
+                <a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .bubble, .vr-btn; far: 50"></a-entity>
             </a-entity>
 
         </a-scene>

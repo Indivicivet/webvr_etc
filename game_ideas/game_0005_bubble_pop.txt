@@ -17,18 +17,19 @@ designed for pure casual satisfaction.
 * Interaction: Popping is instant. When the laser pointer (or gaze cursor) 
   overlaps a bubble and the trigger is pulled (or hovered on gaze), it pops 
   instantly (0ms delay).
-* Locomotion: We initially tried a static camera setup. However, we updated it 
-  to allow movement in VR: hold the Grip button on either controller to steer/walk 
-  in the direction you point, or use the thumbstick/trackpad for smooth locomotion. 
-  A safety boundary clamps the player position within an 8-meter radius of the 
-  starting area. Desktop players can use WASD keys to walk.
+* Locomotion: We initially tried adding locomotion (grip-steer and thumbstick controls) 
+  to allow the player to walk around the garden. However, it was removed as movement 
+  is unnecessary for bubble popping and could lead to issues like analog stick drift 
+  causing runaway camera drift. The camera is now kept completely stationary (with 
+  WASD controls disabled on desktop) to ensure maximum comfort and prevent players 
+  from wandering away from the spawn area.
 * Field of View (FoV): We initially tried spawning bubbles in a narrow stream 
   directly in front of the player (Z between -3 and -5). To improve visual depth 
   and scale, we expanded bubble spawning so they scatter closer and further away 
   (X between -4.0 and 4.0, Z between -1.5 and -9.0), with a portion originating 
   from the central pond and others spawning from the surrounding grass.
-* Comfort: Slow-moving objects, boundary clamping, and slow, linear movement 
-  speeds (1.5 m/s) keep the experience highly comfortable.
+* Comfort: Slow-moving objects, stationary camera, and a calm, static background 
+  make it highly comfortable and motion-sickness free.
 
 3. VISUAL LAYOUT
 --------------------------------------------------------------------------------
@@ -65,11 +66,11 @@ designed for pure casual satisfaction.
 * Setup:
   `<a-scene>`
     `<a-entity id="rig" position="0 0 0">`
-      `<a-camera id="camera" position="0 1.6 0" look-controls="pointerLockEnabled: false">`
+      `<a-camera id="camera" position="0 1.6 0" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false">`
         `<a-cursor id="cursor" fuse="false" raycaster="objects: .bubble, .vr-btn"></a-cursor>`
       `</a-camera>`
-      `<a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .bubble, .vr-btn; far: 50" vr-movement-controls></a-entity>`
-      `<a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .bubble, .vr-btn; far: 50" vr-movement-controls></a-entity>`
+      `<a-entity id="left-hand" laser-controls="hand: left" raycaster="objects: .bubble, .vr-btn; far: 50"></a-entity>`
+      `<a-entity id="right-hand" laser-controls="hand: right" raycaster="objects: .bubble, .vr-btn; far: 50"></a-entity>`
     `</a-entity>`
   `</a-scene>`
 
