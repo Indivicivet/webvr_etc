@@ -692,6 +692,28 @@ const game = {
         lead: 0
     },
 
+    // Shockwave expansion animation states (0 = inactive, >0 = scale)
+    shockwaveProgress: {
+        drums: 0,
+        bass: 0,
+        synth: 0,
+        lead: 0
+    },
+
+    // Floating boost feedback text position and opacity states
+    boostTextY: {
+        drums: 0.8,
+        bass: 0.8,
+        synth: 0.8,
+        lead: 0.8
+    },
+    boostTextOpacity: {
+        drums: 0,
+        bass: 0,
+        synth: 0,
+        lead: 0
+    },
+
     // Current target mix recipe
     currentRecipe: null,
     harmonyMeter: 0, // 0 to 100
@@ -1087,6 +1109,9 @@ function registerFrameTick() {
         // 4. Update and animate Floating Instrument Nodes
         animateInstrumentNodes(time, dt);
 
+        // 4b. Update and animate Interactive Feedback (shockwaves & text labels)
+        animateInteractionIndicators(dt);
+
         // 5. Game Logic matching & VR HUD update
         if (game.state === 'PLAYING') {
             if (game.mode === 'CHALLENGE') {
@@ -1273,6 +1298,51 @@ function animateInstrumentNodes(time, dt) {
     });
 }
 
+// Animates shockwaves expanding/fading and boost text floating/fading on interactive trigger click
+function animateInteractionIndicators(dt) {
+    ['drums', 'bass', 'synth', 'lead'].forEach(name => {
+        // 1. Shockwave expansion & fade out
+        if (game.shockwaveProgress[name] > 0) {
+            game.shockwaveProgress[name] += dt * 7.5;
+            const progress = game.shockwaveProgress[name];
+            const shockwaveEl = document.getElementById(`shockwave-${name}`);
+            if (shockwaveEl) {
+                if (progress > 3.0) {
+                    game.shockwaveProgress[name] = 0;
+                    shockwaveEl.setAttribute('visible', 'false');
+                } else {
+                    shockwaveEl.setAttribute('visible', 'true');
+                    shockwaveEl.setAttribute('scale', { x: progress, y: progress, z: progress });
+                    const opacity = 0.8 * (1.0 - progress / 3.0);
+                    shockwaveEl.setAttribute('material', 'opacity', opacity);
+                }
+            }
+        }
+
+        // 2. Floating feedback text drift, fade out & shrink
+        if (game.boostTextOpacity[name] > 0) {
+            game.boostTextOpacity[name] -= dt * 1.5;
+            game.boostTextY[name] += dt * 0.4;
+            const opacity = game.boostTextOpacity[name];
+            const textY = game.boostTextY[name];
+            const textEl = document.getElementById(`boost-text-${name}`);
+            if (textEl) {
+                if (opacity <= 0) {
+                    game.boostTextOpacity[name] = 0;
+                    textEl.setAttribute('visible', 'false');
+                } else {
+                    textEl.setAttribute('visible', 'true');
+                    textEl.setAttribute('position', { x: 0, y: textY, z: 0 });
+                    // Scale tracks opacity for a nice shrink effect
+                    const textScale = opacity * 0.65;
+                    textEl.setAttribute('scale', { x: textScale, y: textScale, z: textScale });
+                    textEl.setAttribute('opacity', opacity);
+                }
+            }
+        }
+    });
+}
+
 // Checks if the player is currently mixing the matching formula
 function checkChallengeRecipes(dt) {
     if (!game.currentRecipe) return;
@@ -1348,22 +1418,54 @@ function flashSuccessSpotlights() {
 // ==========================================
 function bindGazeTriggers() {
     const nodeNames = ['drums', 'bass', 'synth', 'lead'];
+    const instrumentColors = {
+        drums: '#ff0055',
+        bass: '#00f0ff',
+        synth: '#a300ff',
+        lead: '#ffbb00'
+    };
     
     nodeNames.forEach(name => {
         const el = document.querySelector(`#hit-${name}`);
         if (el) {
             // Gaze / Cursor Raycaster Hover Events
-            el.addEventListener('mouseenter', () => {
+            el.addEventListener('mouseenter', (evt) => {
                 game.gazeState[name] = true;
                 audio.updateTrackVolume(name, true);
                 
                 // Add controller haptics on hover trigger if available
                 triggerHapticFeedback();
+
+                // If pointed at by a controller, activate laser snap color and target halo ring
+                const cursor = evt.detail.cursorEl;
+                if (cursor && (cursor.id === 'left-hand' || cursor.id === 'right-hand')) {
+                    const color = instrumentColors[name];
+                    cursor.setAttribute('line', 'color', color);
+                    
+                    const halo = document.getElementById(`halo-${name}`);
+                    if (halo) {
+                        halo.setAttribute('visible', 'true');
+                        halo.setAttribute('material', 'opacity', '0.8');
+                    }
+                }
             });
 
-            el.addEventListener('mouseleave', () => {
+            el.addEventListener('mouseleave', (evt) => {
                 game.gazeState[name] = false;
                 audio.updateTrackVolume(name, false);
+
+                // If pointed away by a controller, reset laser snap color and target halo ring
+                const cursor = evt.detail.cursorEl;
+                if (cursor && (cursor.id === 'left-hand' || cursor.id === 'right-hand')) {
+                    const defaultColor = cursor.id === 'left-hand' ? '#ff0055' : '#00f0ff';
+                    cursor.setAttribute('line', 'color', defaultColor);
+                    
+                    const halo = document.getElementById(`halo-${name}`);
+                    if (halo) {
+                        halo.setAttribute('visible', 'false');
+                        halo.setAttribute('material', 'opacity', '0');
+                    }
+                }
             });
 
             // Trigger interactive riff on click (controller trigger click)
@@ -1379,6 +1481,13 @@ function triggerInstrumentEnhancement(name) {
     
     // Set to 32 steps (exactly 2 bars)
     game.enhancedStepsRemaining[name] = 32;
+
+    // Start expanding shockwave animation progress (stores current scale multiplier)
+    game.shockwaveProgress[name] = 0.1;
+
+    // Start floating feedback text animation progress
+    game.boostTextOpacity[name] = 1.0;
+    game.boostTextY[name] = 0.8;
     
     // Stronger controller haptics feedback on enhancement trigger
     const scene = document.querySelector('a-scene');

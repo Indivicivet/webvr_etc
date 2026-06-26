@@ -29,7 +29,10 @@ just by looking around.
   - Bass Node: A low, heavy horizontal ring that ripples.
   - Synth Node: A glowing matrix of points.
   - Lead Node: A sharp, rotating diamond.
-* Laser Pointer: A subtle guide line extending from the player's view direction.
+* Laser Pointer & Target Halo: A neon laser guide line extending from the player's 
+  controllers. When aimed at an instrument node, the laser color snaps to that 
+  node's signature color, and a spinning holographic ring (pointer halo) appears 
+  around the target node to indicate focus.
 
 4. CORE GAMEPLAY LOOP
 --------------------------------------------------------------------------------
@@ -44,7 +47,9 @@ just by looking around.
      to allow more complex layered mixing. Tracks now fade out gradually over ~10s.
 4. Trigger Enhancement: Pointing a controller at a node and clicking the trigger 
    briefly plays an enhanced, syncopated harmonizing overlay riff for 2 bars (32 steps), 
-   accompanied by a neon white visual flash on the floor rings.
+   accompanied by a neon white visual flash on the floor rings. Additionally, an 
+   expanding holographic shockwave sphere bursts outwards from the node and a floating 
+   "BOOSTED!" text label rises and fades out to provide clear feedback.
 5. "Solo" Challenge Mode: A customer order or "recipe" sequence flashes on screen 
    (e.g., "DRUM + LEAD"). The player must coordinate their gaze/aim to maintain the 
    correct combination of active instruments to match the rhythm prompt.

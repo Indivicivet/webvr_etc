@@ -243,6 +243,35 @@
                         position="0 -1.49 0" 
                         material="color: #ff0055; shader: flat; transparent: true; opacity: 0.2">
                 </a-ring>
+                <!-- Holographic Pointer Halo (visible when pointed at by controller) -->
+                <a-ring id="halo-drums"
+                        class="pointer-halo"
+                        radius-inner="0.48"
+                        radius-outer="0.52"
+                        position="0 0 0"
+                        material="color: #ff0055; shader: flat; transparent: true; opacity: 0; side: double"
+                        visible="false"
+                        animation__spin="property: rotation; to: 0 0 360; loop: true; dur: 3000; easing: linear">
+                </a-ring>
+                <!-- Expanding Shockwave Sphere (bursts on click) -->
+                <a-sphere id="shockwave-drums"
+                          class="shockwave"
+                          radius="0.1"
+                          material="color: #ffffff; shader: flat; transparent: true; opacity: 0; side: double"
+                          position="0 0 0"
+                          visible="false">
+                </a-sphere>
+                <!-- Floating boost feedback text -->
+                <a-text id="boost-text-drums"
+                        value="BOOSTED!"
+                        align="center"
+                        position="0 0.8 0"
+                        scale="0 0 0"
+                        color="#ffffff"
+                        font="monoid"
+                        shader="flat"
+                        visible="false">
+                </a-text>
             </a-entity>
 
             <!-- BASS NODE -->
@@ -269,6 +298,35 @@
                         position="0 -1.39 0" 
                         material="color: #00f0ff; shader: flat; transparent: true; opacity: 0.2">
                 </a-ring>
+                <!-- Holographic Pointer Halo -->
+                <a-ring id="halo-bass"
+                        class="pointer-halo"
+                        radius-inner="0.48"
+                        radius-outer="0.52"
+                        position="0 0 0"
+                        material="color: #00f0ff; shader: flat; transparent: true; opacity: 0; side: double"
+                        visible="false"
+                        animation__spin="property: rotation; to: 0 0 360; loop: true; dur: 3000; easing: linear">
+                </a-ring>
+                <!-- Expanding Shockwave Sphere -->
+                <a-sphere id="shockwave-bass"
+                          class="shockwave"
+                          radius="0.1"
+                          material="color: #ffffff; shader: flat; transparent: true; opacity: 0; side: double"
+                          position="0 0 0"
+                          visible="false">
+                </a-sphere>
+                <!-- Floating boost feedback text -->
+                <a-text id="boost-text-bass"
+                        value="BOOSTED!"
+                        align="center"
+                        position="0 0.8 0"
+                        scale="0 0 0"
+                        color="#ffffff"
+                        font="monoid"
+                        shader="flat"
+                        visible="false">
+                </a-text>
             </a-entity>
 
             <!-- SYNTH NODE -->
@@ -299,6 +357,35 @@
                         position="0 -1.39 0" 
                         material="color: #a300ff; shader: flat; transparent: true; opacity: 0.2">
                 </a-ring>
+                <!-- Holographic Pointer Halo -->
+                <a-ring id="halo-synth"
+                        class="pointer-halo"
+                        radius-inner="0.48"
+                        radius-outer="0.52"
+                        position="0 0 0"
+                        material="color: #a300ff; shader: flat; transparent: true; opacity: 0; side: double"
+                        visible="false"
+                        animation__spin="property: rotation; to: 0 0 360; loop: true; dur: 3000; easing: linear">
+                </a-ring>
+                <!-- Expanding Shockwave Sphere -->
+                <a-sphere id="shockwave-synth"
+                          class="shockwave"
+                          radius="0.1"
+                          material="color: #ffffff; shader: flat; transparent: true; opacity: 0; side: double"
+                          position="0 0 0"
+                          visible="false">
+                </a-sphere>
+                <!-- Floating boost feedback text -->
+                <a-text id="boost-text-synth"
+                        value="BOOSTED!"
+                        align="center"
+                        position="0 0.8 0"
+                        scale="0 0 0"
+                        color="#ffffff"
+                        font="monoid"
+                        shader="flat"
+                        visible="false">
+                </a-text>
             </a-entity>
 
             <!-- LEAD NODE -->
@@ -324,6 +411,35 @@
                         position="0 -1.49 0" 
                         material="color: #ffbb00; shader: flat; transparent: true; opacity: 0.2">
                 </a-ring>
+                <!-- Holographic Pointer Halo -->
+                <a-ring id="halo-lead"
+                        class="pointer-halo"
+                        radius-inner="0.48"
+                        radius-outer="0.52"
+                        position="0 0 0"
+                        material="color: #ffbb00; shader: flat; transparent: true; opacity: 0; side: double"
+                        visible="false"
+                        animation__spin="property: rotation; to: 0 0 360; loop: true; dur: 3000; easing: linear">
+                </a-ring>
+                <!-- Expanding Shockwave Sphere -->
+                <a-sphere id="shockwave-lead"
+                          class="shockwave"
+                          radius="0.1"
+                          material="color: #ffffff; shader: flat; transparent: true; opacity: 0; side: double"
+                          position="0 0 0"
+                          visible="false">
+                </a-sphere>
+                <!-- Floating boost feedback text -->
+                <a-text id="boost-text-lead"
+                        value="BOOSTED!"
+                        align="center"
+                        position="0 0.8 0"
+                        scale="0 0 0"
+                        color="#ffffff"
+                        font="monoid"
+                        shader="flat"
+                        visible="false">
+                </a-text>
             </a-entity>
 
             <!-- VR In-scene UI Panels -->
